@@ -22,7 +22,7 @@ https://github.com/rainBuildingTree/seamarine-lightnovel-translator/releases/tag
 |----------------------------|----------------------------------------------------------------------|
 | `SeaMarine_LightNovel_Translator.zip` | 프로그램이 담긴 압축 파일 (실행 파일 + 라이브러리 포함)                 |
 | Google Gemini API 키       | 번역을 위해 반드시 필요합니다. [API 키 발급 바로가기](https://makersuite.google.com/app/apikey) |
-| 번역하고 싶은 `.epub` 파일 | 일본어로 된 라이트노벨 `.epub` 파일                                 |
+| 번역하고 싶은 `.epub` 파일 | 일본어로 된 라이트노벨 `.epub` 파일 (루비 문자 제거 필수? 사실 제거 안하고 테스트 안해봄)                                 |
 
 ---
 
