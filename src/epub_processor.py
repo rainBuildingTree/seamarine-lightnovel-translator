@@ -50,10 +50,6 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
 
     for item in book.get_items():
         new_uid = item.get_id()
-        # 만약 항목이 NCX 파일이면 uid를 'noc'로 변경
-        if item.media_type == 'application/x-dtbncx+xml':
-            new_uid = 'toc'
-            print('toc found')
         new_item = epub.EpubItem(
             uid=new_uid,
             file_name=item.file_name,
@@ -61,7 +57,6 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
             content=item.content
         )
         translated_book.add_item(new_item)
-    print(translated_book.get_item_with_id('toc').get_name())
 
     translated_book.set_identifier(f'{uuid.uuid4()}')
 

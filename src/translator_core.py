@@ -20,6 +20,7 @@ client = None
 max_chunk_size = 3000
 llm_model = 'gemini-2.0-flash'
 custom_prompt = ''
+llm_delay = 0.0
 
 def set_client(client_instance):
     """Sets the global client instance for API calls."""
@@ -34,6 +35,9 @@ def set_chunk_size(size):
 def set_custom_prompt(prompt):
     global custom_prompt
     custom_prompt = prompt
+def set_llm_delay(time):
+    global llm_delay
+    llm_delay = time
 
 def clean_gemini_response(response_text: str) -> str:
     """
@@ -103,6 +107,8 @@ async def async_translate_chunk(html_fragment, chapter_index, chunk_index, semap
             except Exception as e:
                 logger.error(f"[{chapter_index}-{chunk_index}] Error on attempt {attempt}: {e}")
                 await asyncio.sleep(5 * attempt)
+            finally:
+                await asyncio.sleep(llm_delay)
     logger.error(
         f"[{chapter_index}-{chunk_index}] Final failure after {MAX_RETRIES} attempts. Returning original fragment."
     )
