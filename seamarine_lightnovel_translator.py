@@ -12,6 +12,7 @@ import os
 import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+import uuid
 
 # === 기본 설정 및 동기 함수들 ===
 
@@ -170,15 +171,28 @@ async def translate_chapter_async(html, chapter_index, executor, semaphore):
     new_body = new_soup.new_tag("body")
     for translated_chunk in translated_chunks:
         chunk_soup = BeautifulSoup(translated_chunk, "html.parser")
-        for content in chunk_soup.contents:
+        for content in list(chunk_soup.contents):
             new_body.append(content)
     html_tag.append(new_body)
     return str(new_soup)
 
 async def translate_epub_async(input_path, output_path, max_concurrent_requests):
     book = epub.read_epub(input_path)
-    print("ERROR...? April fool!")
-    
+    translated_book = epub.EpubBook()
+
+    item_map = {}
+    for item in book.get_items():
+        new_item = epub.EpubItem(
+            uid=item.get_id(),
+            file_name=item.file_name,
+            media_type=item.media_type,
+            content=item.content
+        )
+        item_map[item.get_id()] = new_item
+        translated_book.add_item(new_item)
+
+    translated_book.set_identifier(f'{uuid.uuid4()}')    
+
     # 책 제목 번역
     metadata_title = book.get_metadata('DC', 'title')
     if metadata_title:
@@ -189,8 +203,21 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests)
             soup = BeautifulSoup(translated_html, "html.parser")
             return soup.get_text()
         translated_title = translate_text(original_title, chapter_index=0, chunk_index=0)
-        book.set_title(translated_title)
-    
+        #book.set_title(translated_title)
+        translated_book.set_title(translated_title)
+
+    translated_book.set_language('ko')
+
+    cover = book.get_item_with_id('cover')
+    if cover:
+        translated_book.set_cover(cover.file_name, cover.content)
+
+    creators = book.get_metadata('DC', 'creator')
+    for creator in creators:
+        translated_book.add_author(creator[0])
+
+    translated_book.add_metadata('DC', 'contributor', 'SeaMarine')
+
     # TOC 번역
     def translate_toc_entry(entry, chapter_index=0, chunk_index=0):
         if isinstance(entry, epub.Link):
@@ -203,10 +230,16 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests)
             return (link, new_subitems)
         else:
             return entry
-    book.toc = [translate_toc_entry(entry, chapter_index=0, chunk_index=0) for entry in book.toc]
+        
+    translated_book.toc = book.toc
+    translated_book.spine = book.spine
+
+    epub.write_epub(output_path, translated_book)
+    translated_book = epub.read_epub(output_path)
+    translated_book.toc = [translate_toc_entry(entry, chapter_index=0, chunk_index=0) for entry in translated_book.toc]
     
-    chapter_items = [item for item in book.get_items() if isinstance(item, EpubHtml)]
-    
+    chapter_items = [item for item in translated_book.get_items() if isinstance(item, EpubHtml)]
+
     semaphore = asyncio.Semaphore(max_concurrent_requests)
     executor = ThreadPoolExecutor(max_concurrent_requests)
     
@@ -219,7 +252,7 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests)
     for item, translated_html in zip(chapter_items, translated_results):
         item.set_content(translated_html.encode('utf-8'))
     
-    epub.write_epub(output_path, book)
+    epub.write_epub(output_path, translated_book)
     return output_path
 
 # === GUI 구현 (tkinter) ===
