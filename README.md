@@ -14,7 +14,7 @@ Google Gemini API를 사용하여 빠르고 정확한 번역을 제공합니다.
 
 ---
 ## Zip파일 다운로드
-[https://github.com/rainBuildingTree/seamarine-lightnovel-translator/releases/tag/epub%EB%B2%88%EC%97%AD%EA%B8%B0](https://github.com/rainBuildingTree/seamarine-lightnovel-translator/releases/tag/101hotfix)
+[[https://github.com/rainBuildingTree/seamarine-lightnovel-translator/releases/tag/epub%EB%B2%88%EC%97%AD%EA%B8%B0](https://github.com/rainBuildingTree/seamarine-lightnovel-translator/releases/tag/101hotfix)](https://github.com/rainBuildingTree/seamarine-lightnovel-translator/releases/tag/1.1.0%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8)
 
 ## 🧰 준비물
 
@@ -46,16 +46,32 @@ Google Gemini API를 사용하여 빠르고 정확한 번역을 제공합니다.
 
 - Google Gemini에서 발급받은 **API 키**를 입력칸에 붙여넣습니다.
 - [👉 API 키 발급 가이드](https://makersuite.google.com/app/apikey)
+### 3. 번역기 설정하기
+#### 3.1. Gemini 모델 설정
+1.5프로, 2.0플래시, 2.5프로 중 선택 (2.0 추천, 성능은 2.5가 가장 좋지만 사용 제한이 빡세서 한권도 못할 가능성 높음)
 
-### 3. EPUB 파일 선택
+#### 3.2. 청크 사이즈 선택하기
+청크 사이즈는 프로그램이 Gemini에게 번역요청을 보낼 때 한번에 최대 몇자의 글을 보낼지 결정하는 설정 값입니다.
+클 수록 한번에 큰 맥락에서 번역 가능하고, 2.5프로의 경우 요청수를 줄일 수 있다는 장점이 있지만,
+한번에 글을 많이 보낼 수록 내용을 까먹을 위험성이 올라갑니다.
+최근 발표자료를 보면 제미니는 2000토큰 (한국어/일본어 기준 약 2500-3500자 사이) 이후부터 내용을 100% 기억하지는 못하는 것으로 확인됐습니다.
+커스텀 프롬프트나 프로그램 내부적으로 들어가는 약 200토큰의 프롬프트도 Gemini가 기억하는 내용에 포함되니 이 점 고려해주세요.
+
+#### 3.3. 커스텀 프롬프트!
+이제 Gemini에게 번역 요청을 보낼 때 사용할 유저 커스텀 프롬프트를 적을 수 있습니다 야호!
+
+#### 3.4 동시 요청 수 설정 (Concurrent)
+- 기본값은 `1`로, 이 경우에도 작동 합니다. 
+- 빠른 번역을 원할 경우 `10` 혹은 그 이상 으로 올릴 수 있지만 (구글 제미니 유료계정 기준 50까지도 가능했음)
+- 동시 요청수가 너무 커지면 구글 서버에서 Limit을 걸 수 있습니다.
+
+#### 3.5 현재 설정 저장
+이제 열심히 api키, 커스텀 프롬프트, 다른 설정등을 프로그램을 킬때마다 적을 필요 없어졌습니다.
+(모든 저장요소는 유저의 로컬 컴퓨터, 폴더안의 _internal폴더의 settings.json에 저장됩니다.)
+
+### 4. EPUB 파일 선택
 
 - `Select EPUB File` 버튼을 눌러 번역할 `.epub` 파일을 선택하세요.
-
-### 4. 동시 요청 수 설정 (Concurrent)
-
-- 기본값은 `1`로, 이 경우에도 작동 합니다. 
-- 빠른 번역을 원할 경우 `10` 혹은 그 이상 으로 올릴 수 있지만, **요금이 나올 수 있습니다.**
-- 동시 요청수가 너무 커지면 구글 서버에서 Limit을 걸 수 있습니다.
 
 ### 5. 번역 시작
 
@@ -76,7 +92,6 @@ Google Gemini API를 사용하여 빠르고 정확한 번역을 제공합니다.
 
 - 인터넷 속도와 API 응답에 따라 느릴 수 있습니다.
 - `Max Concurrent Requests` 값을 높이면 빨라지지만 요금이 올라갈 수 있습니다.
-- `Max Concurrent Requests`은 
 
 
 ### Q. 번역 결과가 자연스럽지 않아요.
