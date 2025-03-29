@@ -14,7 +14,7 @@ Google Gemini API를 사용하여 빠르고 정확한 번역을 제공합니다.
 
 ---
 ## Zip파일 다운로드
-https://github.com/rainBuildingTree/seamarine-lightnovel-translator/releases/tag/epub%EB%B2%88%EC%97%AD%EA%B8%B0
+[https://github.com/rainBuildingTree/seamarine-lightnovel-translator/releases/tag/epub%EB%B2%88%EC%97%AD%EA%B8%B0](https://github.com/rainBuildingTree/seamarine-lightnovel-translator/releases/tag/101hotfix)
 
 ## 🧰 준비물
 
