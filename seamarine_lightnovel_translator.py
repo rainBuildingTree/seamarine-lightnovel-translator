@@ -22,7 +22,7 @@ global_model_name = 'gemini-2.0-flash'
 def chunk_body_preserving_structure(body, max_chars=MAX_CHUNK_CHARS):
     chunks = []
     current_chunk = BeautifulSoup("<div></div>", "html.parser").div
-    for element in body.contents:
+    for element in list(body.contents):
         element_str = str(element)
         if len(str(current_chunk)) + len(element_str) > max_chars:
             if current_chunk.contents:
@@ -38,7 +38,7 @@ def chunk_body_preserving_structure(body, max_chars=MAX_CHUNK_CHARS):
                 elif isinstance(element, Tag):
                     temp_tag = element.__copy__()
                     temp_tag.clear()
-                    for child in element.contents:
+                    for child in list(element.contents):
                         child_str = str(child)
                         if len(str(temp_tag)) + len(child_str) > max_chars:
                             if temp_tag.contents:
