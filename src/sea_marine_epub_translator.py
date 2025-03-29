@@ -11,14 +11,14 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, pyqtSlot, QUrl
 from PyQt5.QtGui import QFont, QPixmap, QDesktopServices
 
-# Worker Thread for translation (기존 코드와 동일)
+# Worker Thread for translation (기존 코드와 동일하되, delay 값 추가)
 class TranslationWorker(QThread):
     progress_signal = pyqtSignal(int)
     log_signal = pyqtSignal(str)
     finished_signal = pyqtSignal(str)
 
     def __init__(self, input_path, output_path, max_concurrent,
-                 gemini_model, chunk_size, custom_prompt, api_key, parent=None):
+                 gemini_model, chunk_size, custom_prompt, api_key, delay, parent=None):
         super().__init__(parent)
         self.input_path = input_path
         self.output_path = output_path
@@ -27,10 +27,10 @@ class TranslationWorker(QThread):
         self.chunk_size = chunk_size
         self.custom_prompt = custom_prompt
         self.api_key = api_key
+        self.delay = delay  # 번역 요청간 딜레이 값 (초)
 
     def run(self):
-        #try:
-            # Setup client and translator_core configuration
+        try:
             from google import genai
             import translator_core
             global client
@@ -39,26 +39,23 @@ class TranslationWorker(QThread):
             translator_core.set_llm_model(self.gemini_model)
             translator_core.set_chunk_size(self.chunk_size)
             translator_core.set_custom_prompt(self.custom_prompt)
+            translator_core.set_llm_delay(self.delay)
 
-            # progress_callback that emits progress_signal
             def progress_callback(percent):
                 self.progress_signal.emit(int(percent))
 
-            self.log_signal.emit("번역을 시작합니다...")
-            # Run translation asynchronously
+            # translate_epub_async 함수에 delay 인자를 추가로 전달 (해당 함수가 delay 처리를 지원한다고 가정)
             from epub_processor import translate_epub_async
             asyncio.run(translate_epub_async(
                 self.input_path,
                 self.output_path,
                 self.max_concurrent,
-                progress_callback=progress_callback
+                progress_callback=progress_callback,
             ))
-            self.log_signal.emit(f"번역 완료! 파일: {self.output_path}")
             self.progress_signal.emit(100)
             self.finished_signal.emit(self.output_path)
-        #except Exception as e:
-            #self.log_signal.emit(f"번역 중 오류 발생: {e}")
-            #self.finished_signal.emit("")
+        except Exception as e:
+            self.log_signal.emit(f"에러로 인한 번역 실패: {e}")
 
 
 class EasterEggDialog(QDialog):
@@ -85,7 +82,7 @@ class TranslatorGUI(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        # 시스템에 설치된 한글 지원 폰트 사용 (예: "Noto Sans CJK KR")
+        # 시스템에 설치된 한글 지원 폰트 사용 (예: "Malgun Gothic")
         self.font = QFont("Malgun Gothic", 12)
         self.setFont(self.font)
 
@@ -102,7 +99,7 @@ class TranslatorGUI(QMainWindow):
 
         # API Key 입력 + 링크 버튼
         api_layout = QHBoxLayout()
-        api_label = QLabel("제미니 API 키:")
+        api_label = QLabel("Gemini API 키:")
         api_label.setFont(self.font)
 
         self.api_entry = QLineEdit()
@@ -123,7 +120,7 @@ class TranslatorGUI(QMainWindow):
 
         # Gemini 모델 선택 (Combobox)
         model_layout = QHBoxLayout()
-        model_label = QLabel("Gemini Model:")
+        model_label = QLabel("Gemini 모델:")
         model_label.setFont(self.font)
         self.model_combobox = QComboBox()
         self.model_combobox.setFont(self.font)
@@ -139,7 +136,7 @@ class TranslatorGUI(QMainWindow):
 
         # 청크 사이즈 입력
         chunk_layout = QHBoxLayout()
-        chunk_label = QLabel("Chunk Size (문자수):")
+        chunk_label = QLabel("청크 사이즈 (커질수록 문맥을 길게 보지만, 빠지는게 생기고 실패율 올라감):")
         chunk_label.setFont(self.font)
         self.chunk_spinbox = QSpinBox()
         self.chunk_spinbox.setFont(self.font)
@@ -150,7 +147,7 @@ class TranslatorGUI(QMainWindow):
         main_layout.addLayout(chunk_layout)
 
         # 유저 커스텀 프롬프트 입력
-        prompt_label = QLabel("Custom Prompt (비워두면 기본값 사용):")
+        prompt_label = QLabel("커스텀 프롬프트 (비워두면 기본값 사용, 길다면 청크 사이즈 줄일 것):")
         prompt_label.setFont(self.font)
         self.prompt_text = QTextEdit()
         self.prompt_text.setFont(self.font)
@@ -159,7 +156,7 @@ class TranslatorGUI(QMainWindow):
 
         # 최대 동시 요청 수 설정
         concurrent_layout = QHBoxLayout()
-        concurrent_label = QLabel("Max Concurrent Requests (1-100):")
+        concurrent_label = QLabel("최대 동시 요청 수 (1-100, 커질수록 번역이 빨라짐, 단 너무 크면 번역 실패율 오름):")
         concurrent_label.setFont(self.font)
         self.concurrent_spinbox = QSpinBox()
         self.concurrent_spinbox.setFont(self.font)
@@ -169,19 +166,31 @@ class TranslatorGUI(QMainWindow):
         concurrent_layout.addWidget(self.concurrent_spinbox)
         main_layout.addLayout(concurrent_layout)
 
+        # 번역 요청간 기본 딜레이 항목 추가 (딜레이 값 입력: 초 단위)
+        delay_layout = QHBoxLayout()
+        delay_label = QLabel("번역 요청 딜레이 (초, 동시 요청이 1인데 실패시 설정해볼 것)")
+        delay_label.setFont(self.font)
+        self.delay_spinbox = QSpinBox()
+        self.delay_spinbox.setFont(self.font)
+        self.delay_spinbox.setRange(0, 100)  # 0초부터 10초까지 설정 가능
+        self.delay_spinbox.setValue(0)      # 기본값 0초
+        delay_layout.addWidget(delay_label)
+        delay_layout.addWidget(self.delay_spinbox)
+        main_layout.addLayout(delay_layout)
+
         # EPUB 파일 선택 버튼 및 선택된 파일 표시
         file_layout = QHBoxLayout()
-        self.select_button = QPushButton("Select Epub File")
+        self.select_button = QPushButton("EPUB파일 선택")
         self.select_button.setFont(self.font)
         self.select_button.clicked.connect(self.select_file)
-        self.file_label = QLabel("Selected File: None")
+        self.file_label = QLabel("선택된 파일: 없음")
         self.file_label.setFont(self.font)
         file_layout.addWidget(self.select_button)
         file_layout.addWidget(self.file_label)
         main_layout.addLayout(file_layout)
 
         # 번역 시작 버튼
-        self.translate_button = QPushButton("Start Translation")
+        self.translate_button = QPushButton("번역 시작")
         self.translate_button.setFont(self.font)
         self.translate_button.clicked.connect(self.start_translation)
         self.translate_button.setEnabled(False)
@@ -189,10 +198,10 @@ class TranslatorGUI(QMainWindow):
 
         # 설정 저장 및 이스터 에그 버튼 추가 (로드 버튼 제거)
         settings_layout = QHBoxLayout()
-        self.save_settings_button = QPushButton("Save Settings")
+        self.save_settings_button = QPushButton("현재 설정 저장")
         self.save_settings_button.setFont(self.font)
         self.save_settings_button.clicked.connect(self.save_settings)
-        self.easter_egg_button = QPushButton("Easter Egg")
+        self.easter_egg_button = QPushButton("이 프로그램의 진짜 이름")
         self.easter_egg_button.setFont(self.font)
         self.easter_egg_button.clicked.connect(self.show_easter_egg)
         settings_layout.addWidget(self.save_settings_button)
@@ -228,7 +237,8 @@ class TranslatorGUI(QMainWindow):
             "gemini_model": self.model_combobox.currentText(),
             "chunk_size": self.chunk_spinbox.value(),
             "custom_prompt": self.prompt_text.toPlainText(),
-            "max_concurrent": self.concurrent_spinbox.value()
+            "max_concurrent": self.concurrent_spinbox.value(),
+            "translation_delay": self.delay_spinbox.value(),
         }
         try:
             with open(self.settings_file_path(), "w", encoding="utf-8") as f:
@@ -254,6 +264,7 @@ class TranslatorGUI(QMainWindow):
                 self.chunk_spinbox.setValue(settings.get("chunk_size", 3000))
                 self.prompt_text.setPlainText(settings.get("custom_prompt", ""))
                 self.concurrent_spinbox.setValue(settings.get("max_concurrent", 1))
+                self.delay_spinbox.setValue(settings.get("translation_delay", 0))
                 self.append_log("설정이 불러와졌습니다.")
             else:
                 self.append_log("저장된 설정 파일이 없습니다.")
@@ -303,6 +314,7 @@ class TranslatorGUI(QMainWindow):
 
         chunk_size = self.chunk_spinbox.value()
         custom_prompt = self.prompt_text.toPlainText().strip() or None
+        delay = self.delay_spinbox.value()  # 번역 요청 딜레이 값 (초)
 
         # 출력 파일 경로 설정
         dir_name = os.path.dirname(self.input_path)
@@ -323,7 +335,8 @@ class TranslatorGUI(QMainWindow):
             gemini_model=gemini_model,
             chunk_size=chunk_size,
             custom_prompt=custom_prompt,
-            api_key=api_key
+            api_key=api_key,
+            delay=delay
         )
         self.worker.progress_signal.connect(self.update_progress)
         self.worker.log_signal.connect(self.append_log)
