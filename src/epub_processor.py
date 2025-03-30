@@ -4,7 +4,12 @@ from ebooklib import epub
 from ebooklib.epub import EpubHtml
 from bs4 import BeautifulSoup
 from translator_core import translate_chunk_with_html, translate_chapter_async
+from dual_language import combine_dual_language
 
+dual_language = True
+def set_dual_language_mode(set):
+    global dual_language
+    dual_language = set
 
 def translate_text(text, chapter_index=0, chunk_index=0):
     html_fragment = f"<div>{text}</div>"
@@ -94,6 +99,11 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
     # Get chapter items for translation.
     chapter_items = [item for item in translated_book.get_items() if isinstance(item, EpubHtml)]
 
+    original_chapter_htmls = []
+    if dual_language:
+        for item in chapter_items:
+            original_chapter_htmls.append(item.get_content().decode('utf-8'))
+
     # Setup asynchronous translation using a thread pool.
     from concurrent.futures import ThreadPoolExecutor
     semaphore = asyncio.Semaphore(max_concurrent_requests)
@@ -125,9 +135,18 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
     if progress_callback:
         progress_callback(90)
 
-    # Set translated content for each chapter in original order.
     for idx in range(total_chapters):
-        chapter_items[idx].set_content(results[idx].encode('utf-8'))
+        if dual_language:
+            original_html = original_chapter_htmls[idx]
+            translated_html = results[idx]
+            combined_html = combine_dual_language(original_html, translated_html)
+            chapter_items[idx].set_content(combined_html.encode('utf-8'))
+        else:
+            chapter_items[idx].set_content(results[idx].encode('utf-8'))
+
+    # Set translated content for each chapter in original order.
+    #for idx in range(total_chapters):
+    #    chapter_items[idx].set_content(results[idx].encode('utf-8'))
 
     epub.write_epub(output_path, translated_book)
     if progress_callback:
