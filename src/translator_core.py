@@ -22,6 +22,7 @@ max_chunk_size = 3000
 llm_model = 'gemini-2.0-flash'
 custom_prompt = ''
 llm_delay = 0.0
+japanese_char_threshold = 15
 
 def set_client(client_instance):
     """Sets the global client instance for API calls."""
@@ -39,6 +40,9 @@ def set_custom_prompt(prompt):
 def set_llm_delay(time):
     global llm_delay
     llm_delay = time
+def set_japanese_char_threshold(threshold):
+    global japanese_char_threshold
+    japanese_char_threshold = threshold
 
 def clean_gemini_response(response_text: str) -> str:
     """
@@ -77,7 +81,7 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
         "Now translate:\n\n### html\n" + html_fragment
     )
     response = client.models.generate_content(
-        model=llm_model, #if (len(html_fragment) > 3000 or llm_model != 'gemini-2.5-pro-exp-03-25') else 'gemini-2.0-flash',
+        model=llm_model,
         contents=prompt,
     )
     output = response.text.strip()
@@ -89,7 +93,7 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
     return output
 
 
-JAPANESE_CHAR_THRESHOLD = 15
+
 
 async def async_translate_chunk(html_fragment, chapter_index, chunk_index, semaphore, executor):
     """
@@ -111,7 +115,7 @@ async def async_translate_chunk(html_fragment, chapter_index, chunk_index, semap
                 visible_text = soup.get_text()
                 japanese_chars = re.findall(r'[\u3040-\u30FF\u31F0-\u31FF\u4E00-\u9FFF]', visible_text)
                 count = len(japanese_chars)
-                if count >= JAPANESE_CHAR_THRESHOLD:
+                if count >= japanese_char_threshold:
                     if attempt < MAX_RETRIES:
                         raise Exception(
                             f"Translation result contains {count} Japanese characters on attempt {attempt}, triggering a retry."
