@@ -3,6 +3,7 @@ import copy
 import logging
 from bs4 import BeautifulSoup
 from chunker import HtmlChunker
+import re 
 
 # Constants
 MAX_RETRIES = 3
@@ -88,6 +89,8 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
     return output
 
 
+JAPANESE_CHAR_THRESHOLD = 15
+
 async def async_translate_chunk(html_fragment, chapter_index, chunk_index, semaphore, executor):
     """
     Asynchronously translates an HTML chunk with retry logic.
@@ -103,6 +106,20 @@ async def async_translate_chunk(html_fragment, chapter_index, chunk_index, semap
                     chapter_index,
                     chunk_index,
                 )
+                # 번역 결과에서 HTML 태그를 제외한 보이는 텍스트 추출
+                soup = BeautifulSoup(result, "html.parser")
+                visible_text = soup.get_text()
+                japanese_chars = re.findall(r'[\u3040-\u30FF\u31F0-\u31FF\u4E00-\u9FFF]', visible_text)
+                count = len(japanese_chars)
+                if count >= JAPANESE_CHAR_THRESHOLD:
+                    if attempt < MAX_RETRIES:
+                        raise Exception(
+                            f"Translation result contains {count} Japanese characters on attempt {attempt}, triggering a retry."
+                        )
+                    else:
+                        logger.warning(
+                            f"[{chapter_index}-{chunk_index}] Last attempt result contains {count} Japanese characters. Using it."
+                        )
                 return result
             except Exception as e:
                 logger.error(f"[{chapter_index}-{chunk_index}] Error on attempt {attempt}: {e}")

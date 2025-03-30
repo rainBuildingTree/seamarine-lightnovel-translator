@@ -121,12 +121,13 @@ class TranslatorGUI(QMainWindow):
         api_layout.addWidget(self.api_link_button)
         main_layout.addLayout(api_layout)
 
-        # Gemini 모델 선택 (Combobox)
+        # Gemini 모델 선택 (콤보박스를 편집 가능하게 설정)
         model_layout = QHBoxLayout()
         model_label = QLabel("Gemini 모델:")
         model_label.setFont(self.font)
         self.model_combobox = QComboBox()
         self.model_combobox.setFont(self.font)
+        self.model_combobox.setEditable(True)  # 사용자가 직접 입력할 수 있도록 설정
         self.model_combobox.addItems([
             "Gemini 2.5 Pro Experimental",
             "Gemini 2.0 Flash",
@@ -271,7 +272,7 @@ class TranslatorGUI(QMainWindow):
                 if index >= 0:
                     self.model_combobox.setCurrentIndex(index)
                 else:
-                    self.model_combobox.setCurrentText("Gemini 2.0 Flash")
+                    self.model_combobox.setCurrentText(model)
                 self.chunk_spinbox.setValue(settings.get("chunk_size", 3000))
                 self.prompt_text.setPlainText(settings.get("custom_prompt", ""))
                 self.concurrent_spinbox.setValue(settings.get("max_concurrent", 1))
@@ -322,7 +323,8 @@ class TranslatorGUI(QMainWindow):
             "Gemini 1.5 Pro": "gemini-1.5-pro"
         }
         selected_model = self.model_combobox.currentText().strip()
-        gemini_model = model_mapping.get(selected_model, "gemini-2.0-flash")
+        # 매핑에 없으면 사용자가 직접 입력한 값을 그대로 사용
+        gemini_model = model_mapping.get(selected_model, selected_model)
 
         chunk_size = self.chunk_spinbox.value()
         custom_prompt = self.prompt_text.toPlainText().strip() or None
