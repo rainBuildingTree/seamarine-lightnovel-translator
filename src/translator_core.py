@@ -3,6 +3,7 @@ import copy
 import logging
 from bs4 import BeautifulSoup
 from chunker import HtmlChunker
+import re 
 
 # Constants
 MAX_RETRIES = 3
@@ -21,6 +22,7 @@ max_chunk_size = 3000
 llm_model = 'gemini-2.0-flash'
 custom_prompt = ''
 llm_delay = 0.0
+japanese_char_threshold = 15
 
 def set_client(client_instance):
     """Sets the global client instance for API calls."""
@@ -38,6 +40,9 @@ def set_custom_prompt(prompt):
 def set_llm_delay(time):
     global llm_delay
     llm_delay = time
+def set_japanese_char_threshold(threshold):
+    global japanese_char_threshold
+    japanese_char_threshold = threshold
 
 def clean_gemini_response(response_text: str) -> str:
     """
@@ -76,7 +81,7 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
         "Now translate:\n\n### html\n" + html_fragment
     )
     response = client.models.generate_content(
-        model=llm_model, #if (len(html_fragment) > 3000 or llm_model != 'gemini-2.5-pro-exp-03-25') else 'gemini-2.0-flash',
+        model=llm_model,
         contents=prompt,
     )
     output = response.text.strip()
@@ -86,6 +91,8 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
         logger.error(error_message)
         raise ValueError(error_message)
     return output
+
+
 
 
 async def async_translate_chunk(html_fragment, chapter_index, chunk_index, semaphore, executor):
@@ -103,6 +110,20 @@ async def async_translate_chunk(html_fragment, chapter_index, chunk_index, semap
                     chapter_index,
                     chunk_index,
                 )
+                # 번역 결과에서 HTML 태그를 제외한 보이는 텍스트 추출
+                soup = BeautifulSoup(result, "html.parser")
+                visible_text = soup.get_text()
+                japanese_chars = re.findall(r'[\u3040-\u30FF\u31F0-\u31FF\u4E00-\u9FFF]', visible_text)
+                count = len(japanese_chars)
+                if count >= japanese_char_threshold:
+                    if attempt < MAX_RETRIES:
+                        raise Exception(
+                            f"Translation result contains {count} Japanese characters on attempt {attempt}, triggering a retry."
+                        )
+                    else:
+                        logger.warning(
+                            f"[{chapter_index}-{chunk_index}] Last attempt result contains {count} Japanese characters. Using it."
+                        )
                 return result
             except Exception as e:
                 logger.error(f"[{chapter_index}-{chunk_index}] Error on attempt {attempt}: {e}")
