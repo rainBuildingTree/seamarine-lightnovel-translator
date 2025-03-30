@@ -2,7 +2,6 @@ import sys
 import os
 import json
 import asyncio
-
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QComboBox, QSpinBox, QTextEdit, QPushButton,
@@ -32,9 +31,11 @@ class TranslationWorker(QThread):
     def run(self):
         try:
             from google import genai
+            from google.genai.types import HttpOptions
+            
             import translator_core
             global client
-            client = genai.Client(api_key=self.api_key)
+            client = genai.Client(api_key=self.api_key, http_options=HttpOptions(timeout=10 * 60 * 1000))
             translator_core.set_client(client)
             translator_core.set_llm_model(self.gemini_model)
             translator_core.set_chunk_size(self.chunk_size)
@@ -140,7 +141,7 @@ class TranslatorGUI(QMainWindow):
         chunk_label.setFont(self.font)
         self.chunk_spinbox = QSpinBox()
         self.chunk_spinbox.setFont(self.font)
-        self.chunk_spinbox.setRange(1000, 10000)
+        self.chunk_spinbox.setRange(1000, 100000)
         self.chunk_spinbox.setValue(3000)
         chunk_layout.addWidget(chunk_label)
         chunk_layout.addWidget(self.chunk_spinbox)

@@ -76,8 +76,8 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
         "Now translate:\n\n### html\n" + html_fragment
     )
     response = client.models.generate_content(
-        model=llm_model,
-        contents=prompt
+        model=llm_model, #if (len(html_fragment) > 3000 or llm_model != 'gemini-2.5-pro-exp-03-25') else 'gemini-2.0-flash',
+        contents=prompt,
     )
     output = response.text.strip()
     output = clean_gemini_response(output)
@@ -101,7 +101,7 @@ async def async_translate_chunk(html_fragment, chapter_index, chunk_index, semap
                     translate_chunk_with_html,
                     html_fragment,
                     chapter_index,
-                    chunk_index
+                    chunk_index,
                 )
                 return result
             except Exception as e:

@@ -57,6 +57,10 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
             content=item.content
         )
         translated_book.add_item(new_item)
+        
+    toc_item = translated_book.get_item_with_id("toc.ncx")
+    if toc_item:
+        toc_item.id = "ncx"
 
     translated_book.set_identifier(f'{uuid.uuid4()}')
 
