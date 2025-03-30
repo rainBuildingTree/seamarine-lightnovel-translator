@@ -5,19 +5,19 @@ import asyncio
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QComboBox, QSpinBox, QTextEdit, QPushButton,
-    QProgressBar, QFileDialog, QDialog
+    QProgressBar, QFileDialog, QDialog, QCheckBox
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, pyqtSlot, QUrl
 from PyQt5.QtGui import QFont, QPixmap, QDesktopServices
 
-# Worker Thread for translation (기존 코드와 동일하되, delay 값 추가)
+# Worker Thread for translation (기존 코드와 동일하되, delay 값과 dual_language 플래그 추가)
 class TranslationWorker(QThread):
     progress_signal = pyqtSignal(int)
     log_signal = pyqtSignal(str)
     finished_signal = pyqtSignal(str)
 
     def __init__(self, input_path, output_path, max_concurrent,
-                 gemini_model, chunk_size, custom_prompt, api_key, delay, parent=None):
+                 gemini_model, chunk_size, custom_prompt, api_key, delay, dual_language=False, parent=None):
         super().__init__(parent)
         self.input_path = input_path
         self.output_path = output_path
@@ -27,6 +27,7 @@ class TranslationWorker(QThread):
         self.custom_prompt = custom_prompt
         self.api_key = api_key
         self.delay = delay  # 번역 요청간 딜레이 값 (초)
+        self.dual_language = dual_language
 
     def run(self):
         try:
@@ -45,12 +46,13 @@ class TranslationWorker(QThread):
             def progress_callback(percent):
                 self.progress_signal.emit(int(percent))
 
-            # translate_epub_async 함수에 delay 인자를 추가로 전달 (해당 함수가 delay 처리를 지원한다고 가정)
+            # dual_language 플래그를 translate_epub_async 함수에 전달 (해당 함수가 dual_language 처리를 지원한다고 가정)
             from epub_processor import translate_epub_async
             asyncio.run(translate_epub_async(
                 self.input_path,
                 self.output_path,
                 self.max_concurrent,
+                dual_language=self.dual_language,
                 progress_callback=progress_callback,
             ))
             self.progress_signal.emit(100)
@@ -173,11 +175,18 @@ class TranslatorGUI(QMainWindow):
         delay_label.setFont(self.font)
         self.delay_spinbox = QSpinBox()
         self.delay_spinbox.setFont(self.font)
-        self.delay_spinbox.setRange(0, 100)  # 0초부터 10초까지 설정 가능
-        self.delay_spinbox.setValue(0)      # 기본값 0초
+        self.delay_spinbox.setRange(0, 100)
+        self.delay_spinbox.setValue(0)
         delay_layout.addWidget(delay_label)
         delay_layout.addWidget(self.delay_spinbox)
         main_layout.addLayout(delay_layout)
+
+        # Dual Language 모드 체크박스 추가
+        dual_language_layout = QHBoxLayout()
+        self.dual_language_checkbox = QCheckBox("원문과 번역문 같이 표시")
+        self.dual_language_checkbox.setFont(self.font)
+        dual_language_layout.addWidget(self.dual_language_checkbox)
+        main_layout.addLayout(dual_language_layout)
 
         # EPUB 파일 선택 버튼 및 선택된 파일 표시
         file_layout = QHBoxLayout()
@@ -240,6 +249,7 @@ class TranslatorGUI(QMainWindow):
             "custom_prompt": self.prompt_text.toPlainText(),
             "max_concurrent": self.concurrent_spinbox.value(),
             "translation_delay": self.delay_spinbox.value(),
+            "dual_language": self.dual_language_checkbox.isChecked()
         }
         try:
             with open(self.settings_file_path(), "w", encoding="utf-8") as f:
@@ -266,6 +276,7 @@ class TranslatorGUI(QMainWindow):
                 self.prompt_text.setPlainText(settings.get("custom_prompt", ""))
                 self.concurrent_spinbox.setValue(settings.get("max_concurrent", 1))
                 self.delay_spinbox.setValue(settings.get("translation_delay", 0))
+                self.dual_language_checkbox.setChecked(settings.get("dual_language", False))
                 self.append_log("설정이 불러와졌습니다.")
             else:
                 self.append_log("저장된 설정 파일이 없습니다.")
@@ -316,6 +327,7 @@ class TranslatorGUI(QMainWindow):
         chunk_size = self.chunk_spinbox.value()
         custom_prompt = self.prompt_text.toPlainText().strip() or None
         delay = self.delay_spinbox.value()  # 번역 요청 딜레이 값 (초)
+        dual_language = self.dual_language_checkbox.isChecked()
 
         # 출력 파일 경로 설정
         dir_name = os.path.dirname(self.input_path)
@@ -337,7 +349,8 @@ class TranslatorGUI(QMainWindow):
             chunk_size=chunk_size,
             custom_prompt=custom_prompt,
             api_key=api_key,
-            delay=delay
+            delay=delay,
+            dual_language=dual_language
         )
         self.worker.progress_signal.connect(self.update_progress)
         self.worker.log_signal.connect(self.append_log)

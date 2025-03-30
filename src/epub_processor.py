@@ -6,10 +6,10 @@ from bs4 import BeautifulSoup
 from translator_core import translate_chunk_with_html, translate_chapter_async
 from dual_language import combine_dual_language
 
-dual_language = True
+dual_language_mode = True
 def set_dual_language_mode(set):
-    global dual_language
-    dual_language = set
+    global dual_language_mode
+    dual_language_mode = set
 
 def translate_text(text, chapter_index=0, chunk_index=0):
     html_fragment = f"<div>{text}</div>"
@@ -31,7 +31,7 @@ def translate_toc_entry(entry, chapter_index=0, chunk_index=0):
         return entry
 
 
-async def translate_epub_async(input_path, output_path, max_concurrent_requests, progress_callback=None):
+async def translate_epub_async(input_path, output_path, max_concurrent_requests, dual_language, progress_callback=None):
     """
     Translates an EPUB file from Japanese to Korean.
 
@@ -46,6 +46,9 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
     :param progress_callback: (Optional) A callback function receiving a percentage (0-100).
     :return: The output path.
     """
+    # Set dual language flag
+    global dual_language_mode
+    dual_language_mode = dual_language
     # Read the original EPUB and copy all items to the translated_book.
     book = epub.read_epub(input_path)
     translated_book = epub.EpubBook()
@@ -100,7 +103,7 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
     chapter_items = [item for item in translated_book.get_items() if isinstance(item, EpubHtml)]
 
     original_chapter_htmls = []
-    if dual_language:
+    if dual_language_mode:
         for item in chapter_items:
             original_chapter_htmls.append(item.get_content().decode('utf-8'))
 
@@ -136,7 +139,7 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
         progress_callback(90)
 
     for idx in range(total_chapters):
-        if dual_language:
+        if dual_language_mode:
             original_html = original_chapter_htmls[idx]
             translated_html = results[idx]
             combined_html = combine_dual_language(original_html, translated_html)
