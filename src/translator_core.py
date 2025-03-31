@@ -4,6 +4,7 @@ import logging
 from bs4 import BeautifulSoup
 from chunker import HtmlChunker
 import re 
+import time
 
 # Constants
 MAX_RETRIES = 3
@@ -84,6 +85,7 @@ If there's no Non Korean text, return the input unchanged.\n Now translate:''' +
         error_message = f"Empty or non-HTML response from Gemini for chapter, chunk."
         logger.error(error_message)
         raise ValueError(error_message)
+    time.sleep(llm_delay)
     return output
 def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
     """
@@ -117,6 +119,7 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
         error_message = f"Empty or non-HTML response from Gemini for chapter {chapter_index}, chunk {chunk_index}."
         logger.error(error_message)
         raise ValueError(error_message)
+    time.sleep(llm_delay)
     return output
 
 def annotate_image(img_path):

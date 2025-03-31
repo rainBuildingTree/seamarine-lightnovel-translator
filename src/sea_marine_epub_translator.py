@@ -68,12 +68,13 @@ class ExtractionWorker(QThread):
     log_signal = pyqtSignal(str)
     finished_signal = pyqtSignal(str)
 
-    def __init__(self, input_path, output_path, api_key, gemini_model, parent=None):
+    def __init__(self, input_path, output_path, api_key, gemini_model, delay, parent=None):
         super().__init__(parent)
         self.input_path = input_path
         self.output_path = output_path
         self.api_key = api_key
         self.gemini_model = gemini_model
+        self.delay = delay
 
     def run(self):
         try:
@@ -82,7 +83,7 @@ class ExtractionWorker(QThread):
             from extractor import ProperNounExtractor
             client = genai.Client(api_key=self.api_key, http_options=HttpOptions(timeout=10 * 60 * 1000))
             extractor = ProperNounExtractor(self.input_path, client, self.gemini_model)
-            extractor.run_extraction(progress_callback=self.progress_signal.emit)
+            extractor.run_extraction(delay=self.delay,progress_callback=self.progress_signal.emit)
             extractor.save_to_csv(self.output_path)
             self.finished_signal.emit(self.output_path)
         except Exception as e:
@@ -393,7 +394,8 @@ class TranslatorGUI(QMainWindow):
             input_path=self.input_path,
             output_path=self.output_path,
             api_key=api_key,
-            gemini_model=gemini_model
+            gemini_model=gemini_model,
+            delay=self.delay_spinbox.value()
         )
         self.extraction_worker.progress_signal.connect(self.update_progress)
         self.extraction_worker.log_signal.connect(self.append_log)

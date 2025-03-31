@@ -1,5 +1,6 @@
 import json
 import csv
+import time
 from ebooklib import epub
 from bs4 import BeautifulSoup
 
@@ -46,7 +47,7 @@ Here is the text:
             text = text[:-3].strip()
         return text
 
-    def run_extraction(self, progress_callback=None):
+    def run_extraction(self, delay, progress_callback=None):
         full_text = self.extract_text()
         chunks = self.split_text(full_text)
         total_chunks = len(chunks)
@@ -59,6 +60,7 @@ Here is the text:
                 cleaned = self.clean_response(response.text.strip())
                 new_dict = json.loads(cleaned)
                 self.proper_nouns.update(new_dict)
+                time.sleep(delay)
             except Exception as e:
                 print(f"[ERROR] Failed to parse chunk: {e}")
             if progress_callback:

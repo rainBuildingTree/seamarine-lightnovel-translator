@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 import zipfile
+import posixpath
 import os
 import re
 import xml.etree.ElementTree as ET
@@ -120,7 +121,7 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
             media_type = item.attrib.get('media-type', '')
             if media_type in ['application/xhtml+xml', 'text/html']:
                 href = item.attrib.get('href')
-                chapter_path = os.path.join(opf_dir, href) if opf_dir else href
+                chapter_path = posixpath.join(opf_dir, href) if opf_dir else href
                 if chapter_path in file_contents:
                     chapter_files.append(chapter_path)
                     
