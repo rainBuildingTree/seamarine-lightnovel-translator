@@ -45,7 +45,7 @@ class TranslationWorker(QThread):
             translator_core.set_chunk_size(self.chunk_size)
             translator_core.set_custom_prompt(self.custom_prompt)
             translator_core.set_llm_delay(self.delay)
-            translator_core.set_japanese_char_threshold(int((self.chunk_size+len(self.custom_prompt)) / 200.0))
+            translator_core.set_japanese_char_threshold(int(self.chunk_size / 50.0))
             def progress_callback(percent):
                 self.progress_signal.emit(int(percent))
             from epub_processor import translate_epub_async
@@ -320,7 +320,7 @@ class TranslatorGUI(QMainWindow):
         selected_model = self.model_combobox.currentText().strip()
         gemini_model = model_mapping.get(selected_model, selected_model)
         chunk_size = self.chunk_spinbox.value()
-        custom_prompt = self.prompt_text.toPlainText().strip() or None
+        custom_prompt = self.prompt_text.toPlainText().strip() or ''
         delay = self.delay_spinbox.value()
         dual_language = self.dual_language_checkbox.isChecked()
         complete_mode = self.completion_mode_checkbox.isChecked()

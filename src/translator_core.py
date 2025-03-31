@@ -36,7 +36,8 @@ def set_chunk_size(size):
     max_chunk_size = size
 def set_custom_prompt(prompt):
     global custom_prompt
-    custom_prompt = prompt
+    if prompt:
+        custom_prompt = prompt
 def set_llm_delay(time):
     global llm_delay
     llm_delay = time
@@ -53,11 +54,37 @@ def clean_gemini_response(response_text: str) -> str:
         text = text[7:].strip()
     elif text.startswith("```"):
         text = text[3:].strip()
+    if text.startswith("### html"):
+        text = text[8:].strip()
+    if text.startswith("```html"):
+        text = text[7:].strip()
+    elif text.startswith("```"):
+        text = text[3:].strip()
     if text.endswith("```"):
         text = text[:-3].strip()
     return text
 
-
+def translate_chunk_for_enhance(html_fragment):
+    prompt = (
+        '''You are a professional Non Korean-to-Korean translator for light novels.
+Translate the following plain text into fluent, immersive Korean suitable for official publication.
+Rules:
+- Only translate visible text.
+- Output must be in natural Korean with accurate tone and literary nuance.
+- Respond with Korean translation only — no Non-Korean, no explanations, no comments, no markdown.
+If there's no Non Korean text, return the input unchanged.\n Now translate:''' + html_fragment
+    )
+    response = client.models.generate_content(
+        model=llm_model,
+        contents=prompt,
+    )
+    output = response.text.strip()
+    output = clean_gemini_response(output)
+    if not output:
+        error_message = f"Empty or non-HTML response from Gemini for chapter, chunk."
+        logger.error(error_message)
+        raise ValueError(error_message)
+    return output
 def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
     """
     Translates a chunk of HTML from Japanese to Korean using the Gemini API.
@@ -92,6 +119,25 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
         raise ValueError(error_message)
     return output
 
+def annotate_image(img_path):
+    print("Annotating image")
+    imgfile = client.files.upload(file=img_path)
+    prompt = '''You will be shown an image containing Japanese text.
+Your task is to extract all readable Japanese text from the image and translate it into Korean.
+- Output only the Korean translation as a single paragraph in plain text.
+- Do not include any Japanese text, explanations, or comments.
+- Do not use markdown or any formatting.
+- Keep the output clean, natural, and in fluent Korean.
+Again: Only output the full Korean translation as one paragraph. Nothing else.'''
+    output = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=[
+            imgfile,
+            "\n\n",
+            prompt,
+        ],
+    )
+    return output.text.strip()
 
 
 
@@ -114,6 +160,8 @@ async def async_translate_chunk(html_fragment, chapter_index, chunk_index, semap
                 soup = BeautifulSoup(result, "html.parser")
                 visible_text = soup.get_text()
                 japanese_chars = re.findall(r'[\u3040-\u30FF\u31F0-\u31FF\u4E00-\u9FFF]', visible_text)
+                if japanese_chars is None:
+                    japanese_chars = []
                 count = len(japanese_chars)
                 if count >= japanese_char_threshold:
                     if attempt < MAX_RETRIES:

@@ -5,7 +5,7 @@ import os
 import re
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
-from translator_core import translate_chunk_with_html, translate_chapter_async
+from translator_core import translate_chunk_with_html, translate_chapter_async, annotate_image, translate_chunk_for_enhance
 from dual_language import combine_dual_language
 
 dual_language_mode = True
@@ -13,6 +13,11 @@ dual_language_mode = True
 def set_dual_language_mode(mode):
     global dual_language_mode
     dual_language_mode = mode
+
+def translate_text_for_completion(text):
+    translated_html = translate_chunk_for_enhance(text)
+    soup = BeautifulSoup(translated_html, "html.parser")
+    return soup.get_text()    
 
 def translate_text(text, chapter_index=0, chunk_index=0):
     html_fragment = f"<div>{text}</div>"
@@ -34,7 +39,7 @@ def force_horizontal_writing(html_content):
     head.append(style_tag)
     return str(soup)
 
-async def translate_epub_async(input_path, output_path, max_concurrent_requests, dual_language, complete_mode, progress_callback=None, proper_nouns=None):
+async def translate_epub_async(input_path, output_path, max_concurrent_requests, dual_language, complete_mode, image_annotation_mode=False, progress_callback=None, proper_nouns=None):
     global dual_language_mode
     dual_language_mode = dual_language
     file_contents = {}
@@ -118,7 +123,14 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
                 chapter_path = os.path.join(opf_dir, href) if opf_dir else href
                 if chapter_path in file_contents:
                     chapter_files.append(chapter_path)
-    # New Feature: Replace proper nouns in chapter files if a dictionary is provided.
+                    
+    # 원본 HTML 보존 (dual language용)
+    original_chapter_htmls = {}
+    if dual_language_mode:
+        for chap in chapter_files:
+            original_chapter_htmls[chap] = file_contents[chap].decode('utf-8')
+            
+    # proper noun 치환 (번역 전 원본에는 영향 주지 않음)
     if proper_nouns:
         for chap in chapter_files:
             try:
@@ -129,10 +141,7 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
             except Exception as e:
                 if progress_callback:
                     progress_callback(0)
-    original_chapter_htmls = {}
-    if dual_language_mode:
-        for chap in chapter_files:
-            original_chapter_htmls[chap] = file_contents[chap].decode('utf-8')
+
     from concurrent.futures import ThreadPoolExecutor
     semaphore = asyncio.Semaphore(max_concurrent_requests)
     executor = ThreadPoolExecutor(max_concurrent_requests)
@@ -158,53 +167,152 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
             progress_callback(progress)
     if not complete_mode and progress_callback:
         progress_callback(90)
-    for chap in chapter_files:
-        if dual_language_mode:
-            original_html = original_chapter_htmls[chap]
-            translated_html = results[chap]
-            combined_html = combine_dual_language(original_html, translated_html)
-            updated_html = force_horizontal_writing(combined_html)
-            file_contents[chap] = updated_html.encode('utf-8')
-        else:
-            updated_html = force_horizontal_writing(results[chap])
-            file_contents[chap] = updated_html.encode('utf-8')
+        
+    # helper 함수들 (completion reduction에서 사용)
     def contains_japanese(text):
         return re.search(r'[\u3040-\u30FF\u4E00-\u9FFF]', text) is not None
+    
+    def contains_russian(text):
+        return re.search(r'[\u0400-\u04FF]', text) is not None
+
+    def contains_thai(text):
+        return re.search(r'[\u0E00-\u0E7F]', text) is not None
+
+    def contains_arabic(text):
+        return re.search(r'[\u0600-\u06FF\u0750-\u077F]', text) is not None
+
+    def contains_hebrew(text):
+        return re.search(r'[\u0590-\u05FF]', text) is not None
+
+    def contains_devanagari(text):
+        return re.search(r'[\u0900-\u097F]', text) is not None
+
+    def contains_greek(text):
+        return re.search(r'[\u0370-\u03FF]', text) is not None
+
+    def contains_foreign(text):
+        return (contains_arabic(text) or contains_japanese(text) or contains_russian(text) or 
+                contains_thai(text) or contains_hebrew(text) or contains_devanagari(text) or contains_greek(text))
+    
+    # completion 모드 적용: dual language 모드인 경우 번역 부분만 reduction한 후 원본과 결합하고,
+    # non-dual mode인 경우 기존처럼 전체 번역 결과에 대해 reduction을 적용합니다.
     if complete_mode:
-        async def reduce_wrapper(chap):
-            def reduce_japanese_in_chapter(html):
-                miso_soup = BeautifulSoup(html, 'html.parser')
-                for p in miso_soup.find_all('p'):
-                    if contains_japanese(p.get_text()):
-                        for text_node in p.find_all(string=True):
-                            if contains_japanese(text_node):
-                                original_text = text_node
-                                attempts = 0
-                                translated_text = original_text
-                                while attempts < 3:
-                                    candidate = translate_text(original_text)
-                                    if contains_japanese(candidate) or len(candidate) > 2 * len(original_text):
-                                        attempts += 1
-                                        translated_text = candidate
-                                    else:
-                                        translated_text = candidate
-                                        break
-                                text_node.replace_with(translated_text)
-                return str(miso_soup)
-            html = file_contents[chap].decode('utf-8')
-            new_html = asyncio.get_running_loop().run_in_executor(executor, reduce_japanese_in_chapter, html)
-            new_html = await new_html
-            return chap, new_html
-        reduction_tasks = [asyncio.create_task(reduce_wrapper(chap)) for chap in chapter_files]
-        total_reduction = len(reduction_tasks)
-        completed_reduction = 0
-        for task in asyncio.as_completed(reduction_tasks):
-            chap, new_html = await task
-            file_contents[chap] = new_html.encode('utf-8')
-            completed_reduction += 1
-            if progress_callback:
-                progress = 60 + (completed_reduction / total_reduction) * 40
-                progress_callback(progress)
+        if dual_language_mode:
+            async def process_dual_chap(chap):
+                def reduce_translation(html):
+                    miso_soup = BeautifulSoup(html, "html.parser")
+                    for p in miso_soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
+                        if contains_foreign(p.get_text()):
+                            for text_node in p.find_all(string=True):
+                                if contains_foreign(text_node):
+                                    original_text = text_node
+                                    attempts = 0
+                                    translated_text = original_text
+                                    while attempts < 3:
+                                        try:
+                                            candidate = translate_text_for_completion(translated_text)
+                                            if len(candidate) > 2 * len(original_text):
+                                                attempts += 1
+                                            elif contains_foreign(candidate):
+                                                attempts += 1
+                                                translated_text = candidate
+                                            else:
+                                                translated_text = candidate
+                                                break
+                                        except Exception as e:
+                                            break
+                                    text_node.replace_with(translated_text)
+                    return str(miso_soup)
+                original_html = original_chapter_htmls[chap]
+                translated_html = results[chap]
+                reduced_translated = await asyncio.get_running_loop().run_in_executor(executor, reduce_translation, translated_html)
+                combined_html = combine_dual_language(original_html, reduced_translated)
+                updated_html = force_horizontal_writing(combined_html)
+                return chap, updated_html
+            tasks_dual = [asyncio.create_task(process_dual_chap(chap)) for chap in chapter_files]
+            total_dual = len(tasks_dual)
+            completed_dual = 0
+            for task in asyncio.as_completed(tasks_dual):
+                chap, new_html = await task
+                file_contents[chap] = new_html.encode('utf-8')
+                completed_dual += 1
+                if progress_callback:
+                    progress = 60 + (completed_dual / total_dual) * 40
+                    progress_callback(progress)
+        else:
+            async def reduce_wrapper(chap):
+                def reduce_japanese_in_chapter(html):
+                    miso_soup = BeautifulSoup(html, 'html.parser')
+                    for p in miso_soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
+                        if contains_foreign(p.get_text()):
+                            for text_node in p.find_all(string=True):
+                                if contains_foreign(text_node):
+                                    original_text = text_node
+                                    attempts = 0
+                                    translated_text = original_text
+                                    while attempts < 3:
+                                        try:
+                                            candidate = translate_text_for_completion(translated_text)
+                                            if len(candidate) > 2 * len(original_text):
+                                                attempts += 1
+                                            elif contains_foreign(candidate):
+                                                attempts += 1
+                                                translated_text = candidate
+                                            else:
+                                                translated_text = candidate
+                                                break
+                                        except Exception as e:
+                                            break
+                                    text_node.replace_with(translated_text)
+                    return str(miso_soup)
+                html = results[chap]
+                new_html = await asyncio.get_running_loop().run_in_executor(executor, reduce_japanese_in_chapter, html)
+                new_html = force_horizontal_writing(new_html)
+                return chap, new_html
+            reduction_tasks = [asyncio.create_task(reduce_wrapper(chap)) for chap in chapter_files]
+            total_reduction = len(reduction_tasks)
+            completed_reduction = 0
+            for task in asyncio.as_completed(reduction_tasks):
+                chap, new_html = await task
+                file_contents[chap] = new_html.encode('utf-8')
+                completed_reduction += 1
+                if progress_callback:
+                    progress = 60 + (completed_reduction / total_reduction) * 40
+                    progress_callback(progress)
+    else:
+        # complete_mode 미적용 시 기존 방식대로 처리.
+        for chap in chapter_files:
+            if dual_language_mode:
+                original_html = original_chapter_htmls[chap]
+                translated_html = results[chap]
+                combined_html = combine_dual_language(original_html, translated_html)
+                updated_html = force_horizontal_writing(combined_html)
+                file_contents[chap] = updated_html.encode('utf-8')
+            else:
+                updated_html = force_horizontal_writing(results[chap])
+                file_contents[chap] = updated_html.encode('utf-8')
+
+    # 이미지 annotation 추가
+    if image_annotation_mode:
+        for chap in chapter_files:
+            try:
+                html_content = file_contents[chap].decode('utf-8')
+                soup = BeautifulSoup(html_content, 'html.parser')
+                for img in soup.find_all('img'):
+                    src = img.get('src')
+                    if not src:
+                        continue
+                    chapter_dir = os.path.dirname(chap)
+                    image_path = os.path.join(chapter_dir, src) if chapter_dir else src
+                    if image_path in file_contents:
+                        annotation = annotate_image(image_path)
+                        new_p = soup.new_tag("p")
+                        new_p.string = annotation
+                        img.insert_after(new_p)
+                file_contents[chap] = str(soup).encode('utf-8')
+            except Exception as e:
+                pass
+
     with zipfile.ZipFile(output_path, 'w') as zout:
         if 'mimetype' in file_contents:
             zout.writestr('mimetype', file_contents['mimetype'], compress_type=zipfile.ZIP_STORED)
