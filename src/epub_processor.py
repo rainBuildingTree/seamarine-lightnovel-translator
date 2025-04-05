@@ -9,12 +9,6 @@ from bs4 import BeautifulSoup
 from translator_core import translate_chunk_with_html, translate_chapter_async, annotate_image, translate_chunk_for_enhance
 from dual_language import combine_dual_language
 
-dual_language_mode = True
-
-def set_dual_language_mode(mode):
-    global dual_language_mode
-    dual_language_mode = mode
-
 def translate_text_for_completion(text):
     translated_html = translate_chunk_for_enhance(text)
     soup = BeautifulSoup(translated_html, "html.parser")
@@ -41,36 +35,58 @@ def force_horizontal_writing(html_content):
     return str(soup)
 
 async def translate_epub_async(input_path, output_path, max_concurrent_requests, dual_language, complete_mode, image_annotation_mode=False, progress_callback=None, proper_nouns=None):
-    global dual_language_mode
-    dual_language_mode = dual_language
+    # Read File Contents
     file_contents = {}
     with zipfile.ZipFile(input_path, 'r') as zin:
         for name in zin.namelist():
             file_contents[name] = zin.read(name)
+
+    # Find META-INF/container.xml
     container_path = 'META-INF/container.xml'
     if container_path not in file_contents:
         raise ValueError("META-INF/container.xml not found in the EPUB.")
+    
+    # Retrieve container_tree
     container_tree = ET.fromstring(file_contents[container_path])
-    container_ns = {'container': 'urn:oasis:names:tc:opendocument:xmlns:container'}
+    container_ns = {'container': 'urn:oasis:names:tc:opendocument:xmlns:container'} # ns = Namespace
+
+    # Retrieve opf file
     opf_path = None
     rootfile = container_tree.find('.//container:rootfile', container_ns)
     if rootfile is not None:
         opf_path = rootfile.attrib.get('full-path')
     if not opf_path or opf_path not in file_contents:
         raise ValueError("OPF file not found in the EPUB.")
+    
+    # Get opf data
     opf_data = file_contents[opf_path]
+
+    # Get opf data tree
     opf_tree = ET.fromstring(opf_data)
     ns = {
         'opf': 'http://www.idpf.org/2007/opf',
         'dc': 'http://purl.org/dc/elements/1.1/'
     }
+
+    # Get Epub Version
+    epub_version = opf_tree.attrib.get('version', '2.0')
+    if epub_version.startswith('1'):
+        raise ValueError("EPUB 1.0 is not supported on this program")
+
+    # Get Metadata
     metadata_elem = opf_tree.find('opf:metadata', ns)
+
+
+    # Update Metadata
     if metadata_elem is not None:
+        # Translate title
         title_elem = metadata_elem.find('dc:title', ns)
         if title_elem is not None and title_elem.text:
             original_title = title_elem.text
             translated_title = translate_text(original_title, 0, 0)
             title_elem.text = translated_title
+
+        # Update Language (If it does not exist, add one)
         language_elem = metadata_elem.find('dc:language', ns)
         if language_elem is not None:
             language_elem.text = 'ko'
@@ -78,6 +94,8 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
             new_lang = ET.Element('{http://purl.org/dc/elements/1.1/}language')
             new_lang.text = 'ko'
             metadata_elem.append(new_lang)
+        
+        # Update Identifier (If it does not exists, add one)
         identifier_elem = metadata_elem.find('dc:identifier', ns)
         new_id = str(uuid.uuid4())
         if identifier_elem is not None:
@@ -86,53 +104,99 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
             new_identifier = ET.Element('{http://purl.org/dc/elements/1.1/}identifier')
             new_identifier.text = new_id
             metadata_elem.append(new_identifier)
+        
+        # Inject Contributer
         contributor_elem = metadata_elem.find('dc:contributor', ns)
         if contributor_elem is None:
             new_contrib = ET.Element('{http://purl.org/dc/elements/1.1/}contributor')
-            new_contrib.text = 'SeaMarine'
+            new_contrib.text = '귀여운 시마린'
             metadata_elem.append(new_contrib)
+    
+    # Update opf File
     opf_updated = ET.tostring(opf_tree, encoding='utf-8', xml_declaration=True)
     file_contents[opf_path] = opf_updated
+
+    # Find TOC (Table of Contents)
     toc_path = None
     manifest_elem = opf_tree.find('opf:manifest', ns)
-    opf_dir = os.path.dirname(opf_path)
+    opf_dir = posixpath.dirname(opf_path)
     if manifest_elem is not None:
-        for item in manifest_elem.findall('opf:item', ns):
-            media_type = item.attrib.get('media-type', '')
-            if media_type in ['application/x-dtbncx+xml', 'application/x-dtbncx+xml; charset=utf-8']:
-                toc_href = item.attrib.get('href')
-                toc_path = os.path.join(opf_dir, toc_href) if opf_dir else toc_href
-                break
-    if toc_path and toc_path in file_contents:
-        toc_data = file_contents[toc_path]
-        toc_tree = ET.fromstring(toc_data)
-        ns_ncx = {'ncx': 'http://www.daisy.org/z3986/2005/ncx/'}
-        for navPoint in toc_tree.findall('.//ncx:navPoint', ns_ncx):
-            navLabel = navPoint.find('ncx:navLabel', ns_ncx)
-            if navLabel is not None:
-                text_elem = navLabel.find('ncx:text', ns_ncx)
-                if text_elem is not None and text_elem.text:
-                    text_elem.text = translate_text(text_elem.text, 0, 0)
-        toc_updated = ET.tostring(toc_tree, encoding='utf-8', xml_declaration=True)
-        file_contents[toc_path] = toc_updated
+        # For EPUB2
+        if epub_version.startswith('2'):
+            spine = opf_tree.find('opf:spine', ns)
+            toc_id = spine.attrib.get('toc', None)
+            if toc_id:
+                for item in manifest_elem.findall('opf:item', ns):
+                    if item.attrib.get('id') == toc_id:
+                        toc_href = item.attrib.get('href')
+                        toc_path = posixpath.join(opf_dir, toc_href)
+        # For EPUB3
+        else:
+            for item in manifest_elem.findall('opf:item', ns):
+                if 'properties' in item.attrib and 'nav' in item.attrib['properties']:
+                    toc_href = item.attrib.get('href')
+                    toc_path = posixpath.join(opf_dir, toc_href)
+    
+    # Update TOC
+    if epub_version.startswith('2'): # EPUB 2.0
+        if toc_path and toc_path in file_contents:
+            toc_data = file_contents[toc_path]
+            toc_tree = ET.fromstring(toc_data)
+            ns_ncx = {'ncx': 'http://www.daisy.org/z3986/2005/ncx/'}
+            for navPoint in toc_tree.findall('.//ncx:navPoint', ns_ncx):
+                navLabel = navPoint.find('ncx:navLabel', ns_ncx)
+                if navLabel is not None:
+                    text_elem = navLabel.find('ncx:text', ns_ncx)
+                    if text_elem is not None and text_elem.text:
+                        text_elem.text = translate_text(text_elem.text, 0, 0)
+            toc_updated = ET.tostring(toc_tree, encoding='utf-8', xml_declaration=True)
+            file_contents[toc_path] = toc_updated
+    else: # EPUB 3.0
+        if toc_path and toc_path in file_contents:
+            toc_data = file_contents[toc_path]
+            toc_soup = BeautifulSoup(toc_data, 'html.parser')
+            nav = toc_soup.find('nav', attrs={'epub:type': 'toc'})
+            if nav:
+                for li in nav.find_all('li'):
+                    a = li.find('a')
+                    if a and a.string:
+                        original_text = a.string
+                        translated_text = translate_text(original_text, 0, 0)
+                        a.string = translated_text
+            toc_updated = str(toc_soup).encode('utf-8')
+            file_contents[toc_path] = toc_updated
+
+    # Find all chapters
     chapter_files = []
     if manifest_elem is not None:
         for item in manifest_elem.findall('opf:item', ns):
             media_type = item.attrib.get('media-type', '')
+            properties = item.attrib.get('properties', '')
+            # Exclude items with 'nav' property
+            if 'nav' in properties:
+                continue
             if media_type in ['application/xhtml+xml', 'text/html']:
                 href = item.attrib.get('href')
                 chapter_path = posixpath.join(opf_dir, href) if opf_dir else href
                 if chapter_path in file_contents:
                     chapter_files.append(chapter_path)
                     
-    # 원본 HTML 보존 (dual language용)
+    # Preserve original chapter HTMLs
     original_chapter_htmls = {}
-    if dual_language_mode:
-        for chap in chapter_files:
-            original_chapter_htmls[chap] = file_contents[chap].decode('utf-8')
+    for chap in chapter_files:
+        original_chapter_htmls[chap] = file_contents[chap].decode('utf-8')
+    
+    for chap, html in original_chapter_htmls.items():
+        original_filename = posixpath.basename(chap)
+        name, ext = os.path.splitext(original_filename)
+        new_filename = f"{name}_original{ext}"
+        new_path = posixpath.join('originals', new_filename)
+        file_contents[new_path] = html.encode('utf-8')
             
-    # proper noun 치환 (번역 전 원본에는 영향 주지 않음)
+    # Substitute proper nouns
     if proper_nouns:
+        # Longer proper nouns first
+        proper_nouns = dict(sorted(proper_nouns.items(), key=lambda item: len(item[0]), reverse=True))
         for chap in chapter_files:
             try:
                 content = file_contents[chap].decode('utf-8')
@@ -198,7 +262,7 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
     # completion 모드 적용: dual language 모드인 경우 번역 부분만 reduction한 후 원본과 결합하고,
     # non-dual mode인 경우 기존처럼 전체 번역 결과에 대해 reduction을 적용합니다.
     if complete_mode:
-        if dual_language_mode:
+        if dual_language:
             async def process_dual_chap(chap):
                 def reduce_translation(html):
                     miso_soup = BeautifulSoup(html, "html.parser")
@@ -283,7 +347,7 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
     else:
         # complete_mode 미적용 시 기존 방식대로 처리.
         for chap in chapter_files:
-            if dual_language_mode:
+            if dual_language:
                 original_html = original_chapter_htmls[chap]
                 translated_html = results[chap]
                 combined_html = combine_dual_language(original_html, translated_html)
