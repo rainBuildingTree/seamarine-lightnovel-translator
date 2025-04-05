@@ -34,6 +34,31 @@ def force_horizontal_writing(html_content):
     head.append(style_tag)
     return str(soup)
 
+def contains_japanese(text):
+    return re.search(r'[\u3040-\u30FF\u4E00-\u9FFF]', text) is not None
+
+def contains_cyrill(text):
+    return re.search(r'[\u0400-\u04FF\u0500-\u052F]', text) is not None
+
+def contains_thai(text):
+    return re.search(r'[\u0E00-\u0E7F]', text) is not None
+
+def contains_arabic(text):
+    return re.search(r'[\u0600-\u06FF\u0750-\u077F]', text) is not None
+
+def contains_hebrew(text):
+    return re.search(r'[\u0590-\u05FF]', text) is not None
+
+def contains_devanagari(text):
+    return re.search(r'[\u0900-\u097F]', text) is not None
+
+def contains_greek(text):
+    return re.search(r'[\u0370-\u03FF]', text) is not None
+
+def contains_foreign(text):
+    return (contains_arabic(text) or contains_japanese(text) or contains_cyrill(text) or 
+            contains_thai(text) or contains_hebrew(text) or contains_devanagari(text) or contains_greek(text))
+
 async def translate_epub_async(input_path, output_path, max_concurrent_requests, dual_language, complete_mode, image_annotation_mode=False, progress_callback=None, proper_nouns=None):
     # Read File Contents
     file_contents = {}
@@ -207,17 +232,21 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
                 if progress_callback:
                     progress_callback(0)
 
+    # Translate Chapters
     from concurrent.futures import ThreadPoolExecutor
-    semaphore = asyncio.Semaphore(max_concurrent_requests)
-    executor = ThreadPoolExecutor(max_concurrent_requests)
-    total_chapters = len(chapter_files)
-    tasks = []
     async def wrap_translate(idx, chap_path):
         html = file_contents[chap_path].decode('utf-8')
         translated_html = await translate_chapter_async(html, idx + 1, executor, semaphore)
         return chap_path, translated_html
+    
+    semaphore = asyncio.Semaphore(max_concurrent_requests)
+    executor = ThreadPoolExecutor(max_concurrent_requests)
+    total_chapters = len(chapter_files)
+
+    tasks = []
     for idx, chap in enumerate(chapter_files):
         tasks.append(asyncio.create_task(wrap_translate(idx, chap)))
+
     completed = 0
     results = {}
     for task in asyncio.as_completed(tasks):
@@ -230,34 +259,10 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
             else:
                 progress = 10 + (completed / total_chapters) * 80
             progress_callback(progress)
+
     if not complete_mode and progress_callback:
         progress_callback(90)
-        
-    # helper 함수들 (completion reduction에서 사용)
-    def contains_japanese(text):
-        return re.search(r'[\u3040-\u30FF\u4E00-\u9FFF]', text) is not None
-    
-    def contains_russian(text):
-        return re.search(r'[\u0400-\u04FF]', text) is not None
 
-    def contains_thai(text):
-        return re.search(r'[\u0E00-\u0E7F]', text) is not None
-
-    def contains_arabic(text):
-        return re.search(r'[\u0600-\u06FF\u0750-\u077F]', text) is not None
-
-    def contains_hebrew(text):
-        return re.search(r'[\u0590-\u05FF]', text) is not None
-
-    def contains_devanagari(text):
-        return re.search(r'[\u0900-\u097F]', text) is not None
-
-    def contains_greek(text):
-        return re.search(r'[\u0370-\u03FF]', text) is not None
-
-    def contains_foreign(text):
-        return (contains_arabic(text) or contains_japanese(text) or contains_russian(text) or 
-                contains_thai(text) or contains_hebrew(text) or contains_devanagari(text) or contains_greek(text))
     
     # completion 모드 적용: dual language 모드인 경우 번역 부분만 reduction한 후 원본과 결합하고,
     # non-dual mode인 경우 기존처럼 전체 번역 결과에 대해 reduction을 적용합니다.

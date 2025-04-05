@@ -12,10 +12,13 @@ MAX_RETRIES = 3
 # Setup logger
 logger = logging.getLogger(__name__)
 if not logger.handlers:
-    handler = logging.StreamHandler()
+    handler_stream = logging.StreamHandler()
+    handler_file = logging.FileHandler('translator.log')
     formatter = logging.Formatter('[%(asctime)s] %(levelname)s:%(name)s: %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    handler_stream.setFormatter(formatter)
+    handler_file.setFormatter(formatter)
+    logger.addHandler(handler_stream)
+    logger.addHandler(handler_file)
     logger.setLevel(logging.INFO)
 
 client = None
@@ -81,6 +84,14 @@ If there's no Non Korean text, return the input unchanged.\n Now translate:''' +
     )
     output = response.text.strip()
     output = clean_gemini_response(output)
+
+    # Log the translation result
+    logger.info(
+        f"Translation result:\n"
+        f"--- Input HTML ---\n{html_fragment}\n"
+        f"--- Output HTML ---\n{output}"
+    )
+
     if not output:
         error_message = f"Empty or non-HTML response from Gemini for chapter, chunk."
         logger.error(error_message)
@@ -115,6 +126,14 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
     )
     output = response.text.strip()
     output = clean_gemini_response(output)
+
+    # Log the translation result
+    logger.info(
+        f"[CH{chapter_index}][CHUNK{chunk_index}] Translation result:\n"
+        f"--- Input HTML ---\n{html_fragment}\n"
+        f"--- Output HTML ---\n{output}"
+    )
+
     if not output or "<" not in output:
         error_message = f"Empty or non-HTML response from Gemini for chapter {chapter_index}, chunk {chunk_index}."
         logger.error(error_message)
