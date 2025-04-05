@@ -1,10 +1,13 @@
 import asyncio
 import copy
 import logging
+import PIL.Image
 from bs4 import BeautifulSoup
 from chunker import HtmlChunker
 import re 
 import time
+import PIL
+import io
 
 # Constants
 MAX_RETRIES = 3
@@ -141,9 +144,8 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
     time.sleep(llm_delay)
     return output
 
-def annotate_image(img_path):
+def annotate_image(img_bytes):
     print("Annotating image")
-    imgfile = client.files.upload(file=img_path)
     prompt = '''You will be shown an image containing Japanese text.
 Your task is to extract all readable Japanese text from the image and translate it into Korean.
 - Output only the Korean translation as a single paragraph in plain text.
@@ -154,10 +156,12 @@ Again: Only output the full Korean translation as one paragraph. Nothing else.''
     output = client.models.generate_content(
         model="gemini-2.0-flash",
         contents=[
-            imgfile,
-            "\n\n",
             prompt,
+            PIL.Image.open(io.BytesIO(img_bytes))
         ],
+    )
+    logger.info(
+        f"--- Output Annotation ---\n{output.text.strip()}"
     )
     return output.text.strip()
 

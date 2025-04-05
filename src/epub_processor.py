@@ -59,7 +59,7 @@ def contains_foreign(text):
     return (contains_arabic(text) or contains_japanese(text) or contains_cyrill(text) or 
             contains_thai(text) or contains_hebrew(text) or contains_devanagari(text) or contains_greek(text))
 
-async def translate_epub_async(input_path, output_path, max_concurrent_requests, dual_language, complete_mode, image_annotation_mode=False, progress_callback=None, proper_nouns=None):
+async def translate_epub_async(input_path, output_path, max_concurrent_requests, dual_language, complete_mode, image_annotation_mode=True, progress_callback=None, proper_nouns=None):
     # Read File Contents
     file_contents = {}
     with zipfile.ZipFile(input_path, 'r') as zin:
@@ -368,20 +368,45 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
             try:
                 html_content = file_contents[chap].decode('utf-8')
                 soup = BeautifulSoup(html_content, 'html.parser')
-                for img in soup.find_all('img'):
-                    src = img.get('src')
+
+                # 모든 이미지 태그: <img> + <image> (SVG)
+                all_images = soup.find_all(['img']) + soup.select('svg image')
+
+                for img in all_images:
+                    # 가능한 모든 속성 이름 시도
+                    src = (
+                        img.get("src") or
+                        img.get("xlink:href") or
+                        img.get("href") or
+                        img.get("{http://www.w3.org/1999/xlink}href")
+                    )
+
                     if not src:
+                        print(f"[WARN] No valid image path in tag in {chap}")
                         continue
-                    chapter_dir = os.path.dirname(chap)
-                    image_path = os.path.join(chapter_dir, src) if chapter_dir else src
+
+                    # 상대경로로 변환
+                    chapter_dir = posixpath.dirname(chap)
+                    image_path = posixpath.join(chapter_dir, src) if chapter_dir else src
+                    image_path = posixpath.normpath(image_path)
+                    print(f"[INFO] Resolving image path: {image_path}")
+
+                    # 이미지가 EPUB 내부에 존재할 경우만 처리
                     if image_path in file_contents:
-                        annotation = annotate_image(image_path)
-                        new_p = soup.new_tag("p")
-                        new_p.string = annotation
-                        img.insert_after(new_p)
+                        with zipfile.ZipFile(input_path, 'r') as zf:
+                            image_bytes = zf.read(image_path)
+                            annotation = annotate_image(image_bytes)
+                            new_p = soup.new_tag("p")
+                            new_p.string = '[[이미지 텍스트:' + annotation + ']]'
+                            img.insert_after(new_p)
+                    else:
+                        print(f"[WARN] Image not found in EPUB: {image_path}")
+
+                # 결과 저장
                 file_contents[chap] = str(soup).encode('utf-8')
+
             except Exception as e:
-                pass
+                print(f"[ERROR] Failed to process {chap}: {e}")
 
     with zipfile.ZipFile(output_path, 'w') as zout:
         if 'mimetype' in file_contents:
