@@ -311,10 +311,10 @@ class AdvancedSettingsDialog(QDialog):
         modes_layout.addWidget(self.dual_language_checkbox)
         self.completion_mode_checkbox = QCheckBox("번역 후 검수")
         self.completion_mode_checkbox.setChecked(self.settings.get("completion_mode", False))
-        modes_layout.addWidget(self.completion_mode_checkbox)
+        #modes_layout.addWidget(self.completion_mode_checkbox)
         self.image_annotation_checkbox = QCheckBox("이미지에 주석 달기")
         self.image_annotation_checkbox.setChecked(self.settings.get("image_annotation_mode", False))
-        modes_layout.addWidget(self.image_annotation_checkbox)
+        #modes_layout.addWidget(self.image_annotation_checkbox)
         modes_group.setLayout(modes_layout)
         right_layout.addWidget(modes_group)
 
