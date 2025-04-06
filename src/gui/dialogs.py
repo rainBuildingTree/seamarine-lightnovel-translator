@@ -257,14 +257,16 @@ class AdvancedSettingsDialog(QDialog):
         self.gemini_model_combo.setEditable(True)
         self.gemini_model_combo.addItem("Gemini 1.5 Pro", "gemini-1.5-pro")
         self.gemini_model_combo.addItem("Gemini 2.0 Flash", "gemini-2.0-flash")
-        self.gemini_model_combo.addItem("Gemini 2.5 Pro Experimental", "gemini-2.5-pro-preview-03-25")
+        self.gemini_model_combo.addItem("Gemini 2.5 Pro Experimental", "gemini-2.5-pro-exp-03-25")
+        self.gemini_model_combo.addItem("Gemini 2.5 Pro Preview(유료)", " gemini-2.5-pro-preview-03-25")
         gemini_layout.addWidget(self.gemini_model_combo)
         if "gemini_model" in self.settings:
             saved_model = self.settings["gemini_model"]
             reverse_mapping = {
                 "gemini-1.5-pro": "Gemini 1.5 Pro",
                 "gemini-2.0-flash": "Gemini 2.0 Flash",
-                "gemini-2.5-pro-preview-03-25": "Gemini 2.5 Pro Experimental"
+                "gemini-2.5-pro-exp-03-25": "Gemini 2.5 Pro Experimental",
+                "gemini-2.5-pro-preview-03-25": "Gemini 2.5 Pro Preview(유료)"
             }
             self.gemini_model_combo.setCurrentText(reverse_mapping.get(saved_model, saved_model))
         gemini_group.setLayout(gemini_layout)
@@ -350,8 +352,8 @@ class AdvancedSettingsDialog(QDialog):
         tier = self.tier_combo.currentText().lower()  # "free" or "paid"
         custom_prompt = self.custom_prompt_input.toPlainText()
         new_chunk_size = 3000 - len(custom_prompt)
-        if new_chunk_size < 1:
-            new_chunk_size = 1
+        if new_chunk_size < 1000:
+            new_chunk_size = 1000
         self.chunk_size_input.setText(str(new_chunk_size))
         
         if tier == "free":

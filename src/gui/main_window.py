@@ -737,8 +737,7 @@ class MainWindow(QWidget):
                     reader = csv.reader(csvfile)
                     header = next(reader, None)  # Skip header if exists
                     for row in reader:
-                        if len(row) >= 3 and row[2].strip().lower() == 'y':
-                            proper_nouns[row[0]] = row[1]
+                        proper_nouns[row[0]] = row[1]
             except Exception as e:
                 self.log_text_box.append(f"Proper noun CSV 읽기 오류: {e}")
 
