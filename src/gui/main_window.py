@@ -38,7 +38,7 @@ class MainWindow(QWidget):
         easter_egg_button_layout = QVBoxLayout()
         easter_egg_spacer = QSpacerItem(50, 70, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         self.easter_egg_button = RotatingButton("?")
-        self.easter_egg_button.setMinimumSize(50, 50)
+        self.easter_egg_button.setFixedSize(50, 50)
         self.easter_egg_button.setStyleSheet("""
             QPushButton {
                 border: none;
@@ -69,7 +69,7 @@ class MainWindow(QWidget):
         advanced_setting_button_layout = QVBoxLayout()
         advanced_setting_spacer = QSpacerItem(60, 60, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         self.advanced_setting_button = RotatingButton("고급 설정")
-        self.advanced_setting_button.setMinimumSize(60, 60)
+        self.advanced_setting_button.setFixedSize(60, 60)
         self.advanced_setting_button.setStyleSheet("""
             QPushButton {
                 border: none;
@@ -100,7 +100,7 @@ class MainWindow(QWidget):
         file_select_button_layout = QVBoxLayout()
         file_select_spacer = QSpacerItem(70, 50, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         self.file_select_button = QPushButton("파일 선택")
-        self.file_select_button.setMinimumSize(70, 70)
+        self.file_select_button.setFixedSize(70, 70)
         self.file_select_button.setStyleSheet("""
             QPushButton {
                 border: none;
@@ -131,7 +131,7 @@ class MainWindow(QWidget):
         remove_ruby_button_layout = QVBoxLayout()
         remove_ruby_spacer = QSpacerItem(80, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         self.remove_ruby_button = RotatingButton("루비 제거")
-        self.remove_ruby_button.setMinimumSize(80, 80)
+        self.remove_ruby_button.setFixedSize(80, 80)
         self.remove_ruby_button.setStyleSheet("""
             QPushButton {
                 border: none;
@@ -162,7 +162,7 @@ class MainWindow(QWidget):
         extract_pn_button_layout = QVBoxLayout()
         extract_pn_spacer = QSpacerItem(90, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         self.extract_pn_button = RotatingButton("고유명사\n추출")
-        self.extract_pn_button.setMinimumSize(90, 90)
+        self.extract_pn_button.setFixedSize(90, 90)
         self.extract_pn_button.setStyleSheet("""
             QPushButton {
                 border: none;
@@ -193,7 +193,7 @@ class MainWindow(QWidget):
         edit_pn_dict_button_layout = QVBoxLayout()
         edit_pn_dict_spacer = QSpacerItem(100, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         self.edit_pn_dict_button = RotatingButton("고유명사\n사전 수정")
-        self.edit_pn_dict_button.setMinimumSize(100, 100)
+        self.edit_pn_dict_button.setFixedSize(100, 100)
         self.edit_pn_dict_button.setStyleSheet("""
             QPushButton {
                 border: none;
@@ -224,7 +224,7 @@ class MainWindow(QWidget):
         translate_button_layout = QVBoxLayout()
         translate_spacer = QSpacerItem(120, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         self.translate_button = RotatingButton("번역 실행")
-        self.translate_button.setMinimumSize(120, 120)
+        self.translate_button.setFixedSize(120, 120)
         self.translate_button.setStyleSheet("""
             QPushButton {
                 border: none;
@@ -262,7 +262,7 @@ class MainWindow(QWidget):
         annotate_image_button_layout = QVBoxLayout()
         annotate_image_spacer = QSpacerItem(90, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         self.annotate_image_button = RotatingButton("이미지\n주석")
-        self.annotate_image_button.setMinimumSize(90, 90)
+        self.annotate_image_button.setFixedSize(90, 90)
         self.annotate_image_button.setStyleSheet("""
             QPushButton {
                 border: none;
@@ -293,7 +293,7 @@ class MainWindow(QWidget):
         proofreading_button_layout = QVBoxLayout()
         proofreading_spacer = QSpacerItem(100, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         self.proofreading_button = RotatingButton("검수 진행")
-        self.proofreading_button.setMinimumSize(100, 100)
+        self.proofreading_button.setFixedSize(100, 100)
         self.proofreading_button.setStyleSheet("""
             QPushButton {
                 border: none;
@@ -324,7 +324,7 @@ class MainWindow(QWidget):
         translate_toc_button_layout = QVBoxLayout()
         translate_toc_spacer = QSpacerItem(120, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         self.translate_toc_button = RotatingButton("제목/목차\n번역")
-        self.translate_toc_button.setMinimumSize(120, 120)
+        self.translate_toc_button.setFixedSize(120, 120)
         self.translate_toc_button.setStyleSheet("""
             QPushButton {
                 border: none;

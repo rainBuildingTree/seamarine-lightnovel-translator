@@ -9,6 +9,7 @@ import time
 import PIL
 import io
 import ast
+from google.genai import types
 
 # Constants
 MAX_RETRIES = 3
@@ -123,6 +124,11 @@ If there's no Non Korean text, return the input unchanged.\n Now translate:''' +
             response = client.models.generate_content(
                 model=llm_model,
                 contents=prompt,
+                config=types.GenerateContentConfig(
+                top_k= 2,
+                top_p= 0.85,
+                temperature= 0.8,
+            ),
             )
             output = response.text.strip()
             output = clean_gemini_response(output)
@@ -174,6 +180,11 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
     response = client.models.generate_content(
         model=llm_model,
         contents=prompt,
+        config=types.GenerateContentConfig(
+        top_k= 2,
+        top_p= 0.85,
+        temperature= 0.8,
+    ),
     )
     output = response.text.strip()
     output = clean_gemini_response(output)
@@ -205,6 +216,11 @@ Your task is to extract all readable Japanese text from the image and translate 
                     prompt,
                     PIL.Image.open(io.BytesIO(img_bytes))
                 ],
+                config=types.GenerateContentConfig(
+                top_k= 2,
+                top_p= 0.85,
+                temperature= 0.8,
+                ),
             )
             output_text = response.text.strip()
             logger.info(f"--- Output Annotation ---\n{output_text}")

@@ -380,7 +380,8 @@ class AdvancedSettingsDialog(QDialog):
         friendly_to_raw = {
             "Gemini 1.5 Pro": "gemini-1.5-pro",
             "Gemini 2.0 Flash": "gemini-2.0-flash",
-            "Gemini 2.5 Pro Experimental": "gemini-2.5-pro-preview-03-25"
+            "Gemini 2.5 Pro Experimental": "gemini-2.5-pro-exp-03-25",
+            "Gemini 2.5 Pro Preview(유료)": "gemini-2.5-pro-preview-03-25",
         }
         self.settings["gemini_model"] = friendly_to_raw.get(model_text, model_text)
         try:
