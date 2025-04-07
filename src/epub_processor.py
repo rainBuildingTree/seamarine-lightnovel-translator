@@ -11,9 +11,9 @@ from dual_language import combine_dual_language
 from concurrent.futures import ThreadPoolExecutor
 
 def translate_text_for_completion(text):
-    translated_html = translate_chunk_for_enhance(text)
-    soup = BeautifulSoup(translated_html, "lxml-xml")
-    return soup.get_text()    
+    #translated_text = translate_chunk_for_enhance(text)
+    #soup = BeautifulSoup(translated_html, "lxml-xml")
+    return translate_chunk_for_enhance(text)  
 
 def translate_text(text, chapter_index=0, chunk_index=0):
     html_fragment = f"<div>{text}</div>"
@@ -152,7 +152,7 @@ async def translate_miscellaneous_async(input_path, output_path, progress_callba
                 if navLabel is not None:
                     text_elem = navLabel.find('ncx:text', ns_ncx)
                     if text_elem is not None and text_elem.text:
-                        text_elem.text = translate_text(text_elem.text, 0, 0)
+                        text_elem.text = translate_chunk_for_enhance(text_elem.text) #text(text_elem.text, 0, 0)
             toc_updated = ET.tostring(toc_tree, encoding='utf-8', xml_declaration=True)
             file_contents[toc_path] = toc_updated
     else: # EPUB 3.0
@@ -165,7 +165,7 @@ async def translate_miscellaneous_async(input_path, output_path, progress_callba
                     a = li.find('a')
                     if a and a.string:
                         original_text = a.string
-                        translated_text = translate_text(original_text, 0, 0)
+                        translated_text = translate_chunk_for_enhance(original_text) #text(original_text, 0, 0)
                         a.string = translated_text
             toc_updated = str(toc_soup).encode('utf-8')
             file_contents[toc_path] = toc_updated
@@ -446,101 +446,49 @@ async def translate_completion_async(input_path, output_path, max_concurrent_req
 
     # completion 모드 적용: dual language 모드인 경우 번역 부분만 reduction한 후 원본과 결합하고,
     # non-dual mode인 경우 기존처럼 전체 번역 결과에 대해 reduction을 적용합니다.
-    if complete_mode:
-        if dual_language:
-            async def process_dual_chap(chap):
-                def reduce_translation(html):
-                    miso_soup = BeautifulSoup(html, "lxml-xml")
-                    for p in miso_soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
-                        if contains_foreign(p.get_text()):
-                            for text_node in p.find_all(string=True):
-                                if contains_foreign(text_node):
-                                    original_text = text_node
-                                    attempts = 0
+    async def reduce_wrapper(chap):
+        def reduce_japanese_in_chapter(html):
+            miso_soup = BeautifulSoup(html, 'lxml-xml')
+            for p in miso_soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
+                if contains_foreign(p.get_text()):
+                    for text_node in p.find_all(string=True):
+                        if contains_foreign(text_node):
+                            original_text = text_node
+                            attempts = 0
+                            translated_text = original_text
+                            while attempts < 3:
+                                try:
+                                    candidate = translate_text_for_completion(translated_text)
+                                    if len(candidate) > 2 * len(original_text):
+                                        attempts += 1
+                                    elif contains_foreign(candidate):
+                                        attempts += 1
+                                        translated_text = candidate
+                                    elif len(candidate) == 0:
+                                        attempts += 1
+                                    else:
+                                        translated_text = candidate
+                                        attempts = 3
+                                except Exception as e:
                                     translated_text = original_text
-                                    while attempts < 3:
-                                        try:
-                                            candidate = translate_text_for_completion(translated_text)
-                                            if len(candidate) > 2 * len(original_text):
-                                                attempts += 1
-                                            elif contains_foreign(candidate):
-                                                attempts += 1
-                                                translated_text = candidate
-                                            else:
-                                                translated_text = candidate
-                                                break
-                                        except Exception as e:
-                                            break
-                                    text_node.replace_with(translated_text)
-                    return str(miso_soup)
-                original_html = original_chapter_htmls[chap]
-                translated_html = results[chap]
-                reduced_translated = await asyncio.get_running_loop().run_in_executor(executor, reduce_translation, translated_html)
-                combined_html = combine_dual_language(original_html, reduced_translated)
-                updated_html = force_horizontal_writing(combined_html)
-                return chap, updated_html
-            tasks_dual = [asyncio.create_task(process_dual_chap(chap)) for chap in chapter_files]
-            total_dual = len(tasks_dual)
-            completed_dual = 0
-            for task in asyncio.as_completed(tasks_dual):
-                chap, new_html = await task
-                file_contents[chap] = new_html.encode('utf-8')
-                completed_dual += 1
-                if progress_callback:
-                    progress = (completed_dual / total_dual) * 90
-                    progress_callback(progress)
-        else:
-            async def reduce_wrapper(chap):
-                def reduce_japanese_in_chapter(html):
-                    miso_soup = BeautifulSoup(html, 'lxml-xml')
-                    for p in miso_soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
-                        if contains_foreign(p.get_text()):
-                            for text_node in p.find_all(string=True):
-                                if contains_foreign(text_node):
-                                    original_text = text_node
-                                    attempts = 0
-                                    translated_text = original_text
-                                    while attempts < 3:
-                                        try:
-                                            candidate = translate_text_for_completion(translated_text)
-                                            if len(candidate) > 2 * len(original_text):
-                                                attempts += 1
-                                            elif contains_foreign(candidate):
-                                                attempts += 1
-                                                translated_text = candidate
-                                            else:
-                                                translated_text = candidate
-                                                break
-                                        except Exception as e:
-                                            break
-                                    text_node.replace_with(translated_text)
-                    return str(miso_soup)
-                html = results[chap]
-                new_html = await asyncio.get_running_loop().run_in_executor(executor, reduce_japanese_in_chapter, html)
-                new_html = force_horizontal_writing(new_html)
-                return chap, new_html
-            reduction_tasks = [asyncio.create_task(reduce_wrapper(chap)) for chap in chapter_files]
-            total_reduction = len(reduction_tasks)
-            completed_reduction = 0
-            for task in asyncio.as_completed(reduction_tasks):
-                chap, new_html = await task
-                file_contents[chap] = new_html.encode('utf-8')
-                completed_reduction += 1
-                if progress_callback:
-                    progress = (completed_reduction / total_reduction) * 90
-                    progress_callback(progress)
-    else:
-        # complete_mode 미적용 시 기존 방식대로 처리.
-        for chap in chapter_files:
-            if dual_language:
-                original_html = original_chapter_htmls[chap]
-                translated_html = results[chap]
-                combined_html = combine_dual_language(original_html, translated_html)
-                updated_html = force_horizontal_writing(combined_html)
-                file_contents[chap] = updated_html.encode('utf-8')
-            else:
-                updated_html = force_horizontal_writing(results[chap])
-                file_contents[chap] = updated_html.encode('utf-8')
+                                    attempts = 3
+                            text_node.replace_with(translated_text)
+            return str(miso_soup)
+        html = results[chap]
+        new_html = await asyncio.get_running_loop().run_in_executor(executor, reduce_japanese_in_chapter, html)
+        new_html = force_horizontal_writing(new_html)
+        return chap, new_html
+    
+    reduction_tasks = [asyncio.create_task(reduce_wrapper(chap)) for chap in chapter_files]
+    total_reduction = len(reduction_tasks)
+    completed_reduction = 0
+    for task in asyncio.as_completed(reduction_tasks):
+        chap, new_html = await task
+        file_contents[chap] = new_html.encode('utf-8')
+        completed_reduction += 1
+        if progress_callback:
+            progress = (completed_reduction / total_reduction) * 90
+            progress_callback(progress)
 
     with zipfile.ZipFile(output_path, 'w') as zout:
         if 'mimetype' in file_contents:
