@@ -444,8 +444,6 @@ async def translate_completion_async(input_path, output_path, max_concurrent_req
     executor = ThreadPoolExecutor(max_concurrent_requests)
     total_chapters = len(chapter_files)
 
-    # completion 모드 적용: dual language 모드인 경우 번역 부분만 reduction한 후 원본과 결합하고,
-    # non-dual mode인 경우 기존처럼 전체 번역 결과에 대해 reduction을 적용합니다.
     async def reduce_wrapper(chap):
         def reduce_japanese_in_chapter(html):
             miso_soup = BeautifulSoup(html, 'lxml-xml')

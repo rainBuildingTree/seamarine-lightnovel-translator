@@ -48,7 +48,7 @@ def parse_retry_delay_from_error(error, extra_seconds=2) -> int:
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     handler_stream = logging.StreamHandler()
-    handler_file = logging.FileHandler('translator.log')
+    handler_file = logging.FileHandler('translator.log', encoding='utf-8')
     formatter = logging.Formatter('[%(asctime)s] %(levelname)s:%(name)s: %(message)s')
     handler_stream.setFormatter(formatter)
     handler_file.setFormatter(formatter)
