@@ -55,6 +55,7 @@ class HtmlChunker:
         """
         Splits a Tag's children into multiple Tag chunks, ensuring that each chunk's string
         representation does not exceed max_chars.
+        If a child element itself exceeds max_chars, it is processed separately.
         
         :param tag: The BeautifulSoup Tag to be chunked.
         :return: A list of chunked Tags.
@@ -64,6 +65,26 @@ class HtmlChunker:
         new_tag.clear()
         for child in list(tag.contents):
             child_str = str(child)
+            # 만약 자식 요소 자체가 max_chars보다 크면 별도 분할 처리
+            if len(child_str) > self.max_chars:
+                # 현재까지 누적된 내용이 있다면 먼저 chunk에 추가
+                if new_tag.contents:
+                    chunks.append(new_tag)
+                    new_tag = tag.__copy__()
+                    new_tag.clear()
+                # 자식 요소가 NavigableString인 경우 텍스트 분할
+                if isinstance(child, NavigableString):
+                    chunks.extend(self._chunk_text(str(child)))
+                # Tag인 경우 재귀적으로 처리
+                elif isinstance(child, Tag):
+                    self._process_large_element(child, chunks)
+                else:
+                    new_div = self._create_empty_div()
+                    new_div.append(child)
+                    chunks.append(new_div)
+                continue
+
+            # 자식 요소를 추가했을 때 현재 chunk가 max_chars를 초과하는지 확인
             if len(str(new_tag)) + len(child_str) > self.max_chars:
                 if new_tag.contents:
                     chunks.append(new_tag)
@@ -108,7 +129,7 @@ class HtmlChunker:
         current_chunk = self._create_empty_div()
         for element in list(body.contents):
             element_str = str(element)
-            # Check if adding the element exceeds the max character limit
+            # 현재 chunk에 요소를 추가할 때 max_chars를 초과하는지 확인
             if len(str(current_chunk)) + len(element_str) > self.max_chars:
                 self._finalize_current_chunk(current_chunk, chunks)
                 if len(element_str) > self.max_chars:
