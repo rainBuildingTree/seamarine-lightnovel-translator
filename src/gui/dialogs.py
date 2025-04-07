@@ -182,14 +182,14 @@ class TierSelectionDialog(QDialog):
     def optimize_settings_for_tier(self, tier):
         # Retrieve the current custom prompt from settings (or default to empty)
         custom_prompt = self.settings.get("custom_prompt", "")
-        new_chunk_size = 5800 - len(custom_prompt)
+        new_chunk_size = 1800
         if new_chunk_size < 1:
             new_chunk_size = 1
         self.settings["chunk_size"] = new_chunk_size
 
         if tier == "free":
             self.settings["max_concurrent_requests"] = 1
-            self.settings["request_delay"] = 5
+            self.settings["request_delay"] = 0
         elif tier == "paid":
             self.settings["max_concurrent_requests"] = 30
             self.settings["request_delay"] = 0
@@ -351,14 +351,14 @@ class AdvancedSettingsDialog(QDialog):
         # Use the current tier from the combo box and the custom prompt from this dialog
         tier = self.tier_combo.currentText().lower()  # "free" or "paid"
         custom_prompt = self.custom_prompt_input.toPlainText()
-        new_chunk_size = 3000 - len(custom_prompt)
+        new_chunk_size = 1800
         if new_chunk_size < 1000:
             new_chunk_size = 1000
         self.chunk_size_input.setText(str(new_chunk_size))
         
         if tier == "free":
             self.max_concurrent_input.setText("1")
-            self.request_delay_input.setText("5")
+            self.request_delay_input.setText("0")
         elif tier == "paid":
             self.max_concurrent_input.setText("30")
             self.request_delay_input.setText("0")
