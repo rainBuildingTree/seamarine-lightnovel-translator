@@ -125,9 +125,7 @@ If there's no Non Korean text, return the input unchanged.\n Now translate:''' +
                 model=llm_model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                top_k= 2,
-                top_p= 0.85,
-                temperature= 0.8,
+                max_output_tokens=8192,
             ),
             )
             output = response.text.strip()
@@ -181,9 +179,10 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
         model=llm_model,
         contents=prompt,
         config=types.GenerateContentConfig(
-        top_k= 2,
+        top_k= 50,
         top_p= 0.85,
-        temperature= 0.8,
+        temperature= 1.8,
+        max_output_tokens=8192,
     ),
     )
     output = response.text.strip()
@@ -217,9 +216,10 @@ Your task is to extract all readable Japanese text from the image and translate 
                     PIL.Image.open(io.BytesIO(img_bytes))
                 ],
                 config=types.GenerateContentConfig(
-                top_k= 2,
+                top_k= 50,
                 top_p= 0.85,
                 temperature= 0.8,
+                max_output_tokens=8192,
                 ),
             )
             output_text = response.text.strip()

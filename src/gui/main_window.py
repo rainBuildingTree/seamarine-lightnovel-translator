@@ -367,7 +367,7 @@ class MainWindow(QWidget):
         self.file_label = QLabel()
         self.file_label.setText("선택된 파일이 없습니다.")
         self.file_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.file_label.setFixedHeight(24)  # 한 줄 텍스트 라벨 높이
+        self.file_label.setFixedHeight(48)  # 한 줄 텍스트 라벨 높이
         self.file_label.setStyleSheet("""
             QLabel {
                 font-family: 'Segoe UI', 'Malgun Gothic', 'Helvetica Neue', sans-serif;
@@ -422,7 +422,7 @@ class MainWindow(QWidget):
         main_layout.addWidget(self.progress_bar)
 
         # Version Label
-        version_label = QLabel("Version: 1.3.0")
+        version_label = QLabel("Version: 1.3.1")
         version_label.setAlignment(Qt.AlignCenter)
         version_label.setStyleSheet("color: #f7f7f7; font-size: 12px;")
         main_layout.addWidget(version_label)
