@@ -63,6 +63,7 @@ llm_model = 'gemini-2.0-flash'
 custom_prompt = ''
 llm_delay = 0.0
 japanese_char_threshold = 15
+language = 'Japanese'
 
 def set_client(client_instance):
     """Sets the global client instance for API calls."""
@@ -89,6 +90,9 @@ def set_llm_delay(time):
 def set_japanese_char_threshold(threshold):
     global japanese_char_threshold
     japanese_char_threshold = threshold
+def set_language(lang):
+    global language
+    language = lang
 
 def clean_gemini_response(response_text: str) -> str:
     """
@@ -111,13 +115,16 @@ def clean_gemini_response(response_text: str) -> str:
 
 def translate_chunk_for_enhance(html_fragment):
     prompt = (
-        '''You are a professional Non Korean-to-Korean translator for light novels.
-Translate the following plain text into fluent, immersive Korean suitable for official publication.
-Rules:
-- Only translate visible text.
-- Output must be in natural Korean with accurate tone and literary nuance.
-- Respond with Korean translation only — no Non-Korean, no explanations, no comments, no markdown.
-If there's no Non Korean text, return the input unchanged.\n Now translate:''' + html_fragment
+        "당신은 한국어 라이트노벨 전문 번역가입니다. 아래에 주어진 텍스트는 이미 한국어로 번역된 상태이지만, 일부 외국어(일본어, 영어, 키릴문자 등)가 그대로 남아 있을 수 있습니다.\n\n"
+
+        "📝 번역 지침:\n"
+        "- 이미 한국어로 번역된 문장은 수정하지 마십시오.\n"
+        "- 한국어가 아닌 텍스트(일본어, 영어 등)만 자연스럽고 문학적인 한국어로 번역하십시오.\n"
+        "- 번역 결과에는 오직 한국어만 포함되어야 합니다. 외국어는 절대 포함하지 마십시오.\n"
+        "- 설명, 주석, 마크다운 등은 절대 추가하지 마십시오.\n"
+        "- 번역할 외국어가 전혀 없다면, 원본 텍스트를 그대로 반환하십시오.\n\n"
+
+        "다음 글을 검토하여 외국어만 한국어로 번역하십시오:\n\n" + html_fragment
     )
     for attempt in range(1, MAX_RETRIES + 1):
         try:
@@ -126,6 +133,7 @@ If there's no Non Korean text, return the input unchanged.\n Now translate:''' +
                 contents=prompt,
                 config=types.GenerateContentConfig(
                 max_output_tokens=8192,
+                frequency_penalty=0.5,
             ),
             )
             output = response.text.strip()
@@ -159,21 +167,24 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
     Raises an exception if the translation fails.
     """
     prompt = (
-        "**Important:** Do NOT include any comments or explanations in your output. Only return the translated result.\n\n"
-        "You are a professional Japanese-to-Korean translator who specializes in translating Japanese light novels with accuracy, fluency, and emotional nuance.\n"
-        "Translate the following HTML content from Japanese into natural Korean, suitable for publication in an officially localized light novel. "
-        "Maintain the tone, dialogue, and literary nuance. Use fluent and immersive Korean that feels professionally written.\n"
-        "You're translating Japanese light novels. Follow these strict guidelines:\n\n"
-        "⚠️ Strict Instructions:\n"
-        "- Only translate visible Japanese text.\n"
-        "- NEVER remove or modify any HTML tags, structure, or attributes (like <p>, <img>, class names, etc.)\n"
-        "- Do NOT translate file paths, image `alt`, `href`, class names, or non-visible metadata.\n"
-        "- NEVER include Japanese characters in your respond\n"
-        "- If there is no Japanese text, return the input HTML unchanged.\n"
-        "- ❗ Only respond with raw HTML.\n"
-        "- Do NOT include explanations, comments, markdown code blocks, or any extra content.\n\n" +
-        custom_prompt +
-        "Now translate:\n\n### html\n" + html_fragment
+        "**중요:** 반드시 **순수하게 번역된 HTML만** 반환하십시오. 설명, 주석, 코드 블록, 그 외 부가적인 내용은 절대 포함하지 마십시오.\n\n"
+
+        f"당신은 {language} 라이트노벨 전문 번역가이며, {language}에서 한국어로 번역하는 일을 수행합니다. "
+        "번역은 정확하고 자연스러우며 감정 표현이 풍부해야 하며, 국내 정식 출간에 적합한 수준이어야 합니다.\n\n"
+
+        "🎯 번역 지침:\n"
+        "- 원문의 어조, 문학적 뉘앙스, 대화체 스타일을 최대한 유지하십시오.\n"
+        "- 몰입감 있고 자연스러운 한국어 표현을 사용하십시오.\n\n"
+
+        "⚠️ HTML 및 형식 관련 규칙:\n"
+        "- HTML 태그, 구조, 속성(`<p>`, `<img>`, `class` 등)은 절대 수정, 제거, 재배열하지 마십시오.\n"
+        "- 파일 경로, 이미지 alt 텍스트, href, class 이름, 메타데이터 등 **보이지 않는 정보는 번역하지 마십시오.**\n"
+        f"- 최종 결과에 {language} 텍스트가 남아 있어서는 안 됩니다.\n"
+        "- 번역할 외국어 텍스트가 없다면, 원본 HTML을 그대로 반환하십시오.\n\n"
+
+        + custom_prompt +
+
+        "\n이제 다음 HTML을 검토하여 번역을 수행하십시오:\n\n" + html_fragment
     )
     response = client.models.generate_content(
         model=llm_model,
@@ -183,6 +194,7 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
         top_p= 0.85,
         temperature= 1.8,
         max_output_tokens=8192,
+        frequency_penalty=0.5,
     ),
     )
     output = response.text.strip()
@@ -203,10 +215,18 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index):
 
 def annotate_image(img_bytes):
     print("Annotating image")
-    prompt = '''You will be shown an image containing Japanese text.
-Your task is to extract all readable Japanese text from the image and translate it into Korean.
-- Do not include any Japanese text, explanations, or comments.
-- Keep the output clean, natural, and in fluent Korean.'''
+    prompt = (
+        "당신은 이미지 속에 포함된 읽을 수 있는 텍스트를 확인하게 됩니다.\n"
+        "당신의 임무는 이미지에 보이는 모든 읽을 수 있는 텍스트를 추출하여 자연스러운 한국어로 번역하는 것입니다.\n\n"
+
+        "📝 번역 지침:\n"
+        "- 이미지에 **보이는 텍스트만** 번역하십시오.\n"
+        "- 한국어 원어민이 읽기에 자연스러운 표현을 사용하십시오.\n"
+        "- 출력에는 **한국어만 포함**되어야 하며, 외국어는 절대 포함하지 마십시오.\n"
+        "- 설명, 주석, 마크다운 등의 형식은 절대 추가하지 마십시오.\n\n"
+
+        "오직 번역된 한국어 텍스트만 출력하십시오."
+    )
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             response = client.models.generate_content(
@@ -220,6 +240,7 @@ Your task is to extract all readable Japanese text from the image and translate 
                 top_p= 0.85,
                 temperature= 0.8,
                 max_output_tokens=8192,
+                frequency_penalty=0.5,
                 ),
             )
             output_text = response.text.strip()
@@ -262,6 +283,7 @@ async def async_translate_chunk(html_fragment, chapter_index, chunk_index, semap
                 hebrew_chars = re.findall(r'[\u0590-\u05FF]', visible_text)
                 devanagari_chars = re.findall(r'[\u0900-\u097F]', visible_text)
                 greek_chars = re.findall(r'[\u0370-\u03FF]', visible_text)
+                
                 if japanese_chars or cyrill_chars or thai_chars or arabic_chars or hebrew_chars or devanagari_chars or greek_chars:
                     foreign_chars = japanese_chars + cyrill_chars + thai_chars + arabic_chars + hebrew_chars + devanagari_chars + greek_chars
                 else:

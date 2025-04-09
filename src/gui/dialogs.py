@@ -315,6 +315,12 @@ class AdvancedSettingsDialog(QDialog):
         self.image_annotation_checkbox = QCheckBox("이미지에 주석 달기")
         self.image_annotation_checkbox.setChecked(self.settings.get("image_annotation_mode", False))
         #modes_layout.addWidget(self.image_annotation_checkbox)
+        self.language_label = QLabel("원어 (영어로 적을 것)")
+        self.language_input = QLineEdit()
+        default_language = self.settings.get("language", "Japanese")
+        self.language_input.setText(str(default_language))
+        modes_layout.addWidget(self.language_label)
+        modes_layout.addWidget(self.language_input)
         modes_group.setLayout(modes_layout)
         right_layout.addWidget(modes_group)
 
@@ -400,6 +406,7 @@ class AdvancedSettingsDialog(QDialog):
         self.settings["dual_language_mode"] = self.dual_language_checkbox.isChecked()
         self.settings["completion_mode"] = self.completion_mode_checkbox.isChecked()
         self.settings["image_annotation_mode"] = self.image_annotation_checkbox.isChecked()
+        self.settings["language"] = self.language_input.text()
 
         save_settings(self.settings)
 

@@ -495,7 +495,8 @@ class MainWindow(QWidget):
                 delay=self.settings.get("request_delay", 0),
                 dual_language_mode=False,
                 completion_mode=False,
-                proper_nouns=proper_nouns
+                proper_nouns=proper_nouns,
+                language=self.settings.get("language", "Japanese").strip()
             )
             self.toc_translation_worker.progress_signal.connect(self.update_progress)
             self.toc_translation_worker.log_signal.connect(self.log_text_box.append)
@@ -535,7 +536,8 @@ class MainWindow(QWidget):
                 delay=self.settings.get("request_delay", 0),
                 dual_language_mode=False,
                 completion_mode=False,
-                proper_nouns=proper_nouns
+                proper_nouns=proper_nouns,
+                language=self.settings.get("language", "Japanese").strip()
             )
             self.completion_translation_worker.progress_signal.connect(self.update_progress)
             self.completion_translation_worker.log_signal.connect(self.log_text_box.append)
@@ -575,7 +577,8 @@ class MainWindow(QWidget):
                 delay=self.settings.get("request_delay", 0),
                 dual_language_mode=False,
                 completion_mode=False,
-                proper_nouns=proper_nouns
+                proper_nouns=proper_nouns,
+                language=self.settings.get("language", "Japanese").strip()
             )
             self.completion_translation_worker.progress_signal.connect(self.update_progress)
             self.completion_translation_worker.log_signal.connect(self.log_text_box.append)
@@ -614,7 +617,8 @@ class MainWindow(QWidget):
                         api_key=self.settings.get("api_key", "").strip(),
                         gemini_model=self.settings.get("gemini_model", "gemini-2.0-flash"),
                         delay=self.settings.get("request_delay", 0),
-                        max_concurrent_requests=self.settings.get("max_concurrent_requests", 1)
+                        max_concurrent_requests=self.settings.get("max_concurrent_requests", 1),
+                        language=self.settings.get("language", 'Japanese').strip()
                     )
                     self.extraction_worker.progress_signal.connect(self.update_progress)
                     self.extraction_worker.log_signal.connect(self.log_text_box.append)
@@ -633,7 +637,8 @@ class MainWindow(QWidget):
                     api_key=self.settings.get("api_key", "").strip(),
                     gemini_model=self.settings.get("gemini_model", "gemini-2.0-flash"),
                     delay=self.settings.get("request_delay", 0),
-                    max_concurrent_requests=self.settings.get("max_concurrent_requests", 1)
+                    max_concurrent_requests=self.settings.get("max_concurrent_requests", 1),
+                    language=self.settings.get("language", 'Japanese').strip()
                 )
                 self.extraction_worker.progress_signal.connect(self.update_progress)
                 self.extraction_worker.log_signal.connect(self.log_text_box.append)

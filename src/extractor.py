@@ -92,19 +92,30 @@ def get_retry_delay_from_exception(error_str: str, extra_seconds: int = 2) -> in
 
 
 class ProperNounExtractor:
-    def __init__(self, epub_path: str, client, llm_model: str):
+    def __init__(self, epub_path: str, client, llm_model: str, language: str = 'Japanese'):
         self.epub_path = epub_path
         self.client = client
         self.llm_model = llm_model
-        self.prompt = '''You are given a Japanese novel text. Extract all the proper nouns found in the text and translate each of them into Korean. Return the result strictly as a JSON object with Japanese names as keys and their Korean translations as values. Do not include any other commentary or explanation.
+        self.language = language
+        self.prompt = f'''You are a text processor that extracts and translates proper nouns from a {self.language} light novel text into Korean.
 
-Example format:
-{
+🎯 Task:
+- Identify all proper nouns in the input text.
+- Translate each proper noun into Korean.
+- Return the result strictly as a JSON object.
+- Use the original {self.language} proper noun as the key, and the Korean translation as the value.
+
+⚠️ Output Requirements:
+- Respond **only** with the JSON object.
+- Do **not** include any commentary, explanation, or formatting outside the JSON.
+- Follow this format exactly:
+
+{{
   "田中": "다나카",
   "東京": "도쿄"
-}
+}}
 
-Here is the text:
+📄 The input text is below:
 '''
         self.proper_nouns = {}
 
@@ -192,6 +203,6 @@ Here is the text:
     def save_to_csv(self, filename="proper_nouns.csv"):
         with open(filename, "w", newline="", encoding="utf-8-sig") as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow(["Japanese", "Korean"])
-            for jp, kr in self.proper_nouns.items():
-                writer.writerow([jp, kr])
+            writer.writerow(["원어", "한국어"])
+            for origin, kr in self.proper_nouns.items():
+                writer.writerow([origin, kr])

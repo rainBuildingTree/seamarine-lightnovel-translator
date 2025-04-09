@@ -10,7 +10,7 @@ class TranslationWorker(QThread):
     finished_signal = pyqtSignal(str)
 
     def __init__(self, input_path, output_path, max_concurrent,
-                 gemini_model, chunk_size, custom_prompt, api_key, delay,
+                 gemini_model, chunk_size, custom_prompt, api_key, delay, language='Japanese',
                  dual_language_mode=False, completion_mode=False, image_annotation_mode=False, proper_nouns=None, parent=None):
         super().__init__(parent)
         self.input_path = input_path
@@ -25,6 +25,7 @@ class TranslationWorker(QThread):
         self.complete_mode = completion_mode
         self.proper_nouns = proper_nouns
         self.image_annotation_mode = image_annotation_mode
+        self.language = language
 
     def run(self):
         try:
@@ -63,7 +64,7 @@ class CompletionTranslationWorker(QThread):
     finished_signal = pyqtSignal(str)
 
     def __init__(self, input_path, output_path, max_concurrent,
-                 gemini_model, chunk_size, custom_prompt, api_key, delay,
+                 gemini_model, chunk_size, custom_prompt, api_key, delay, language='Japanese',
                  dual_language_mode=False, completion_mode=False, image_annotation_mode=False, proper_nouns=None, parent=None):
         super().__init__(parent)
         self.input_path = input_path
@@ -78,6 +79,7 @@ class CompletionTranslationWorker(QThread):
         self.complete_mode = completion_mode
         self.proper_nouns = proper_nouns
         self.image_annotation_mode = image_annotation_mode
+        self.language = language
 
     def run(self):
         try:
@@ -104,6 +106,7 @@ class CompletionTranslationWorker(QThread):
                 image_annotation_mode=self.image_annotation_mode,
                 proper_nouns=self.proper_nouns,  # <-- proper nouns passed here
                 progress_callback=progress_callback,
+                language=self.language
             ))
             self.progress_signal.emit(100)
             self.finished_signal.emit(self.output_path)
@@ -116,7 +119,7 @@ class ImageAnnotationWorker(QThread):
     finished_signal = pyqtSignal(str)
 
     def __init__(self, input_path, output_path, max_concurrent,
-                 gemini_model, chunk_size, custom_prompt, api_key, delay,
+                 gemini_model, chunk_size, custom_prompt, api_key, delay, language='Japanese',
                  dual_language_mode=False, completion_mode=False, image_annotation_mode=False, proper_nouns=None, parent=None):
         super().__init__(parent)
         self.input_path = input_path
@@ -131,6 +134,7 @@ class ImageAnnotationWorker(QThread):
         self.complete_mode = completion_mode
         self.proper_nouns = proper_nouns
         self.image_annotation_mode = image_annotation_mode
+        self.language = language
 
     def run(self):
         try:
@@ -169,7 +173,7 @@ class TocTranslationWorker(QThread):
     finished_signal = pyqtSignal(str)
 
     def __init__(self, input_path, output_path, max_concurrent,
-                 gemini_model, chunk_size, custom_prompt, api_key, delay,
+                 gemini_model, chunk_size, custom_prompt, api_key, delay, language='Japanese',
                  dual_language_mode=False, completion_mode=False, image_annotation_mode=False, proper_nouns=None, parent=None):
         super().__init__(parent)
         self.input_path = input_path
@@ -184,6 +188,7 @@ class TocTranslationWorker(QThread):
         self.complete_mode = completion_mode
         self.proper_nouns = proper_nouns
         self.image_annotation_mode = image_annotation_mode
+        self.language = language
 
     def run(self):
         try:
@@ -216,7 +221,7 @@ class ExtractionWorker(QThread):
     log_signal = pyqtSignal(str)
     finished_signal = pyqtSignal(str)
 
-    def __init__(self, input_path, output_path, api_key, gemini_model, delay, max_concurrent_requests, parent=None):
+    def __init__(self, input_path, output_path, api_key, gemini_model, delay, max_concurrent_requests, language, parent=None):
         super().__init__(parent)
         self.input_path = input_path
         self.output_path = output_path
@@ -224,6 +229,7 @@ class ExtractionWorker(QThread):
         self.gemini_model = gemini_model
         self.delay = delay
         self.max_concurrent_requests = max_concurrent_requests
+        self.language = language
 
     def run(self):
         try:
@@ -231,7 +237,7 @@ class ExtractionWorker(QThread):
             from google.genai.types import HttpOptions
             from extractor import ProperNounExtractor
             client = genai.Client(api_key=self.api_key, http_options=HttpOptions(timeout=10 * 60 * 1000))
-            extractor = ProperNounExtractor(self.input_path, client, self.gemini_model)
+            extractor = ProperNounExtractor(self.input_path, client, self.gemini_model, self.language)
             extractor.run_extraction(delay=self.delay,max_concurrent_requests=self.max_concurrent_requests,progress_callback=self.progress_signal.emit)
             extractor.save_to_csv(self.output_path)
             self.finished_signal.emit(self.output_path)

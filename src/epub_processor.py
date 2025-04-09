@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from translator_core import translate_chunk_with_html, translate_chapter_async, annotate_image, translate_chunk_for_enhance
 from dual_language import combine_dual_language
 from concurrent.futures import ThreadPoolExecutor
+import string
 
 def translate_text_for_completion(text):
     #translated_text = translate_chunk_for_enhance(text)
@@ -36,7 +37,8 @@ def force_horizontal_writing(html_content):
     return str(soup)
 
 def contains_japanese(text):
-    return re.search(r'[\u3040-\u30FF\u4E00-\u9FFF]', text) is not None
+    filtered = re.sub(r'[・ー]', '', text)
+    return re.search(r'[\u3040-\u30FF\u4E00-\u9FFF]', filtered) is not None
 
 def contains_cyrill(text):
     return re.search(r'[\u0400-\u04FF\u0500-\u052F]', text) is not None
@@ -56,8 +58,17 @@ def contains_devanagari(text):
 def contains_greek(text):
     return re.search(r'[\u0370-\u03FF]', text) is not None
 
-def contains_foreign(text):
-    return (contains_arabic(text) or contains_japanese(text) or contains_cyrill(text) or 
+def contains_english(text):
+    english_char_count = sum(1 for c in text if c in string.ascii_letters)
+    total_alpha_count = sum(1 for c in text if c.isalpha())
+    
+    if total_alpha_count == 0:
+        return False
+    
+    return english_char_count / total_alpha_count > 0.5
+
+def contains_foreign(text, is_include_english = False):
+    return (contains_arabic(text) or contains_japanese(text) or contains_cyrill(text) or (contains_english(text) if is_include_english else False) or
             contains_thai(text) or contains_hebrew(text) or contains_devanagari(text) or contains_greek(text))
 
 async def translate_miscellaneous_async(input_path, output_path, progress_callback=None):
@@ -359,7 +370,7 @@ async def translate_epub_async(input_path, output_path, max_concurrent_requests,
         progress_callback(100)
     return output_path
 
-async def translate_completion_async(input_path, output_path, max_concurrent_requests, dual_language, complete_mode, image_annotation_mode, progress_callback=None, proper_nouns=None):
+async def translate_completion_async(input_path, output_path, max_concurrent_requests, dual_language, complete_mode, image_annotation_mode, language = 'Japanese', progress_callback=None, proper_nouns=None):
     complete_mode = True
 
     # Read File Contents
@@ -448,9 +459,9 @@ async def translate_completion_async(input_path, output_path, max_concurrent_req
         def reduce_japanese_in_chapter(html):
             miso_soup = BeautifulSoup(html, 'lxml-xml')
             for p in miso_soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
-                if contains_foreign(p.get_text()):
+                if contains_foreign(p.get_text(), language=='English'):
                     for text_node in p.find_all(string=True):
-                        if contains_foreign(text_node):
+                        if contains_foreign(text_node, language=='English'):
                             original_text = text_node
                             attempts = 0
                             translated_text = original_text
@@ -459,7 +470,7 @@ async def translate_completion_async(input_path, output_path, max_concurrent_req
                                     candidate = translate_text_for_completion(translated_text)
                                     if len(candidate) > 2 * len(original_text):
                                         attempts += 1
-                                    elif contains_foreign(candidate):
+                                    elif contains_foreign(candidate, language=='English'):
                                         attempts += 1
                                         translated_text = candidate
                                     elif len(candidate) == 0:
