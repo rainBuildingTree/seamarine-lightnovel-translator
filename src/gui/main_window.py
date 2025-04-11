@@ -11,7 +11,7 @@ from gui.dialogs import EasterEggDialog, AdvancedSettingsDialog, CSVEditorDialog
 from gui.customs import RotatingButton
 
 # Import the worker classes from the original translator GUI
-from gui.workers import TranslationWorker, ExtractionWorker, RubyRemoverWorker, TocTranslationWorker, CompletionTranslationWorker, ImageAnnotationWorker
+from gui.new_workers import TranslationWorker, ExtractionWorker, RubyRemoverWorker, TocTranslationWorker, ProofreadingWorker, ImageAnnotationWorker, DualLanguageApplyWorker
 
 class MainWindow(QWidget):
     def __init__(self, settings):
@@ -255,15 +255,46 @@ class MainWindow(QWidget):
         button_layout2.setSpacing(20)
 
         # 8. Spacer
-        button_layout2_spacer = QSpacerItem(350, 120, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        button_layout2_spacer = QSpacerItem(250, 120, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         button_layout2.addItem(button_layout2_spacer)
 
         # 9. Annoate Image Button
         annotate_image_button_layout = QVBoxLayout()
-        annotate_image_spacer = QSpacerItem(90, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        annotate_image_spacer = QSpacerItem(80, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         self.annotate_image_button = RotatingButton("이미지\n주석")
-        self.annotate_image_button.setFixedSize(90, 90)
+        self.annotate_image_button.setFixedSize(80, 80)
         self.annotate_image_button.setStyleSheet("""
+            QPushButton {
+                border: none;
+                border-radius: 40px;
+                background-color: qlineargradient(
+                    spread:pad, x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #f7f7f7, stop:1 #eaeaea
+                );
+                color: #333;
+                font-size: 12px;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                background-color: qlineargradient(
+                    spread:pad, x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #eaeaea, stop:1 #dedede
+                );
+            }
+        """)
+        self.add_drop_shadow(self.annotate_image_button)
+        annotate_image_button_layout.addItem(annotate_image_spacer)
+        annotate_image_button_layout.addWidget(self.annotate_image_button)
+        button_layout2.addLayout(annotate_image_button_layout)
+
+        self.annotate_image_button.clicked.connect(self.start_image_annotation)
+
+        # 10. Dual Lang Button
+        apply_dual_language_button_layout = QVBoxLayout()
+        apply_dual_language_spacer = QSpacerItem(90, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        self.apply_dual_language_button = RotatingButton("원어\n병기")
+        self.apply_dual_language_button.setFixedSize(90, 90)
+        self.apply_dual_language_button.setStyleSheet("""
             QPushButton {
                 border: none;
                 border-radius: 45px;
@@ -282,12 +313,12 @@ class MainWindow(QWidget):
                 );
             }
         """)
-        self.add_drop_shadow(self.annotate_image_button)
-        annotate_image_button_layout.addItem(annotate_image_spacer)
-        annotate_image_button_layout.addWidget(self.annotate_image_button)
-        button_layout2.addLayout(annotate_image_button_layout)
+        self.add_drop_shadow(self.apply_dual_language_button)
+        apply_dual_language_button_layout.addItem(apply_dual_language_spacer)
+        apply_dual_language_button_layout.addWidget(self.apply_dual_language_button)
+        button_layout2.addLayout(apply_dual_language_button_layout)
 
-        self.annotate_image_button.clicked.connect(self.start_image_annotation)
+        self.apply_dual_language_button.clicked.connect(self.apply_dual_language)
 
         # 10. Proofreading Button
         proofreading_button_layout = QVBoxLayout()
@@ -487,16 +518,11 @@ class MainWindow(QWidget):
             self.toc_translation_worker = TocTranslationWorker(
                 input_path=self.epub_file,
                 output_path=self.epub_file,
-                max_concurrent=1,
                 gemini_model=self.settings.get("gemini_model", "gemini-2.0-flash"),
                 chunk_size=1500,
                 custom_prompt="",
                 api_key=self.settings.get("api_key", "").strip(),
                 delay=self.settings.get("request_delay", 0),
-                dual_language_mode=False,
-                completion_mode=False,
-                proper_nouns=proper_nouns,
-                language=self.settings.get("language", "Japanese").strip()
             )
             self.toc_translation_worker.progress_signal.connect(self.update_progress)
             self.toc_translation_worker.log_signal.connect(self.log_text_box.append)
@@ -525,7 +551,7 @@ class MainWindow(QWidget):
             else:
                 proper_nouns = None
 
-            self.completion_translation_worker = CompletionTranslationWorker(
+            self.completion_translation_worker = ProofreadingWorker(
                 input_path=self.epub_file,
                 output_path=self.epub_file,
                 max_concurrent=1,
@@ -537,7 +563,6 @@ class MainWindow(QWidget):
                 dual_language_mode=False,
                 completion_mode=False,
                 proper_nouns=proper_nouns,
-                language=self.settings.get("language", "Japanese").strip()
             )
             self.completion_translation_worker.progress_signal.connect(self.update_progress)
             self.completion_translation_worker.log_signal.connect(self.log_text_box.append)
@@ -550,6 +575,58 @@ class MainWindow(QWidget):
             self.proofreading_button.stop_animation()
             self.buttons_setEnabled(True)
             return
+
+    def apply_dual_language(self):
+        if not self.epub_file:
+            self.log_text_box.append("먼저 EPUB 파일을 선택해주세요.")
+            return
+        
+        # 설정값 로드
+        api_key = self.settings.get("api_key", "").strip()
+        gemini_model = self.settings.get("gemini_model", "gemini-2.0-flash")
+        chunk_size = self.settings.get("chunk_size", 1500)
+        custom_prompt = self.settings.get("custom_prompt", "")
+        delay = self.settings.get("request_delay", 0)
+        
+        # 출력 파일 경로 설정: 기존 파일명을 기반으로 "_dual_language.epub" 확장자를 사용
+        dir_name = os.path.dirname(self.epub_file)
+        base_name = os.path.splitext(os.path.basename(self.epub_file))[0]
+        output_path = os.path.join(dir_name, base_name + "_dual_language.epub")
+        
+        # DualLanguageApplyWorker 인스턴스 생성
+        self.dual_language_worker = DualLanguageApplyWorker(
+            input_path=self.epub_file,
+            output_path=output_path,
+            api_key=api_key,
+            gemini_model=gemini_model,
+            chunk_size=chunk_size,
+            custom_prompt=custom_prompt,
+            delay=delay,
+            parent=self
+        )
+        # 작업 진행률, 로그, 완료 시그널 연결
+        self.dual_language_worker.progress_signal.connect(self.update_progress)
+        self.dual_language_worker.log_signal.connect(self.log_text_box.append)
+        self.dual_language_worker.finished_signal.connect(self.dual_language_finished)
+        
+        # 애니메이션 시작, 버튼 비활성화 후 작업 시작
+        self.apply_dual_language_button.start_animation()
+        self.buttons_setEnabled(False)
+        self.dual_language_worker.start()
+    
+    @pyqtSlot(str)
+    def dual_language_finished(self, output_path):
+        if output_path:
+            self.log_text_box.append(f"원어 병기 적용 완료! 파일: {output_path}")
+            self.epub_file = output_path
+            file_name = os.path.basename(output_path)
+            wrapped_file_name = "\n".join(textwrap.wrap(file_name, width=100))
+            self.file_label.setText(f"선택된 EPUB 파일: {wrapped_file_name}")
+            self.file_label.setToolTip(output_path)
+        else:
+            self.log_text_box.append("원어 병기 적용 실패!")
+        self.apply_dual_language_button.stop_animation()
+        self.buttons_setEnabled(True)
 
     def start_image_annotation(self):
         if not self.epub_file:
@@ -578,7 +655,6 @@ class MainWindow(QWidget):
                 dual_language_mode=False,
                 completion_mode=False,
                 proper_nouns=proper_nouns,
-                language=self.settings.get("language", "Japanese").strip()
             )
             self.completion_translation_worker.progress_signal.connect(self.update_progress)
             self.completion_translation_worker.log_signal.connect(self.log_text_box.append)
@@ -618,7 +694,6 @@ class MainWindow(QWidget):
                         gemini_model=self.settings.get("gemini_model", "gemini-2.0-flash"),
                         delay=self.settings.get("request_delay", 0),
                         max_concurrent_requests=self.settings.get("max_concurrent_requests", 1),
-                        language=self.settings.get("language", 'Japanese').strip()
                     )
                     self.extraction_worker.progress_signal.connect(self.update_progress)
                     self.extraction_worker.log_signal.connect(self.log_text_box.append)
@@ -638,7 +713,6 @@ class MainWindow(QWidget):
                     gemini_model=self.settings.get("gemini_model", "gemini-2.0-flash"),
                     delay=self.settings.get("request_delay", 0),
                     max_concurrent_requests=self.settings.get("max_concurrent_requests", 1),
-                    language=self.settings.get("language", 'Japanese').strip()
                 )
                 self.extraction_worker.progress_signal.connect(self.update_progress)
                 self.extraction_worker.log_signal.connect(self.log_text_box.append)

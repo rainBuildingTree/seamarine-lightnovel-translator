@@ -319,8 +319,8 @@ class AdvancedSettingsDialog(QDialog):
         self.language_input = QLineEdit()
         default_language = self.settings.get("language", "Japanese")
         self.language_input.setText(str(default_language))
-        modes_layout.addWidget(self.language_label)
-        modes_layout.addWidget(self.language_input)
+        #modes_layout.addWidget(self.language_label)
+        #modes_layout.addWidget(self.language_input)
         modes_group.setLayout(modes_layout)
         right_layout.addWidget(modes_group)
 

@@ -237,7 +237,7 @@ class ExtractionWorker(QThread):
             from google.genai.types import HttpOptions
             from extractor import ProperNounExtractor
             client = genai.Client(api_key=self.api_key, http_options=HttpOptions(timeout=10 * 60 * 1000))
-            extractor = ProperNounExtractor(self.input_path, client, self.gemini_model, self.language)
+            extractor = ProperNounExtractor(self.input_path, client, self.gemini_model)
             extractor.run_extraction(delay=self.delay,max_concurrent_requests=self.max_concurrent_requests,progress_callback=self.progress_signal.emit)
             extractor.save_to_csv(self.output_path)
             self.finished_signal.emit(self.output_path)

@@ -32,11 +32,11 @@ def combine_dual_language(original_html, translated_html):
         new_tag = soup_original.new_tag("p")
         new_tag.attrs = orig_tag.attrs.copy()
         # 원본 내용 추가 (내부 HTML 유지)
-        new_tag.append(BeautifulSoup(orig_tag.decode_contents(), "lxml"))
+        new_tag.append(BeautifulSoup(orig_tag.decode_contents(), "html.parser"))
         # 구분자 추가 (예: <br>)
         new_tag.append(soup_original.new_tag("br"))
         # 번역 내용 추가 (내부 HTML 유지)
-        new_tag.append(BeautifulSoup(trans_tag.decode_contents(), "lxml"))
+        new_tag.append(BeautifulSoup(trans_tag.decode_contents(), "html.parser"))
         # 원본 <p> 태그를 새 태그로 교체
         orig_tag.replace_with(new_tag)
     

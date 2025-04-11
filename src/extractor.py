@@ -6,9 +6,32 @@ from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import re
 import ast
+import pycountry
 
 # 추가: 최대 재시도 횟수
 MAX_RETRIES = 3
+
+def get_language_name(code: str, default: str) -> str:
+    code = code.lower()
+    
+    # Try ISO 639-1 (2-letter)
+    lang = pycountry.languages.get(alpha_2=code)
+    if lang:
+        return lang.name
+
+    # Try ISO 639-2 (3-letter)
+    lang = pycountry.languages.get(alpha_3=code)
+    if lang:
+        return lang.name
+
+    # Try alternative codes or common mismatches
+    for lang in pycountry.languages:
+        if hasattr(lang, 'bibliographic') and lang.bibliographic == code:
+            return lang.name
+        if hasattr(lang, 'terminology') and lang.terminology == code:
+            return lang.name
+
+    return default
 
 # 추가: 에러 메시지에서 "retry after X" 형태로 시간(초)을 파싱하기 위한 함수
 def parse_retry_delay_from_error(error) -> int:
@@ -92,32 +115,36 @@ def get_retry_delay_from_exception(error_str: str, extra_seconds: int = 2) -> in
 
 
 class ProperNounExtractor:
-    def __init__(self, epub_path: str, client, llm_model: str, language: str = 'Japanese'):
+    def __init__(self, epub_path: str, client, llm_model: str):
         self.epub_path = epub_path
         self.client = client
         self.llm_model = llm_model
-        self.language = language
-        self.prompt = f'''You are a text processor that extracts and translates proper nouns from a {self.language} light novel text into Korean.
+        self.language = self.get_language()
+        self.prompt = f'''당신은 {self.language} 라이트노벨 텍스트에서 고유명사를 추출하고 한국어로 번역하는 텍스트 처리기입니다.
 
-🎯 Task:
-- Identify all proper nouns in the input text.
-- Translate each proper noun into Korean.
-- Return the result strictly as a JSON object.
-- Use the original {self.language} proper noun as the key, and the Korean translation as the value.
+🎯 작업:
+- 입력된 텍스트에서 모든 고유명사를 식별하세요.
+- 각 고유명사를 한국어로 번역하세요.
+- 결과는 반드시 JSON 객체 형태로만 반환하세요.
+- 원문 {self.language} 고유명사는 key로, 한국어 번역은 value로 작성하세요.
 
-⚠️ Output Requirements:
-- Respond **only** with the JSON object.
-- Do **not** include any commentary, explanation, or formatting outside the JSON.
-- Follow this format exactly:
+⚠️ 출력 형식:
+- JSON 객체 **외의 설명, 주석, 서식 없이** 출력하세요.
+- 아래 형식을 정확히 따르세요:
 
 {{
   "田中": "다나카",
   "東京": "도쿄"
 }}
 
-📄 The input text is below:
+📄 입력 텍스트:
 '''
         self.proper_nouns = {}
+    def get_language(self) -> str:
+        book = epub.read_epub(self.epub_path)
+        self.language = get_language_name(book.get_metadata('DC', 'language')[0][0], 'Japanese')
+        print(self.language)
+        return self.language
 
     def extract_text(self) -> str:
         book = epub.read_epub(self.epub_path)
