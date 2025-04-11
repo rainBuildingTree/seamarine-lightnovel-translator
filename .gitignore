@@ -2,3 +2,4 @@ build
 dist
 *.epub
 *.json
+legacy/test/*
