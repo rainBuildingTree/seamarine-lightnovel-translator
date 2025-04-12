@@ -304,11 +304,11 @@ class AdvancedSettingsDialog(QDialog):
         right_layout.addWidget(performance_group)
 
         # --- Modes Group ---
-        modes_group = QGroupBox("기타 설정")
-        modes_layout = QVBoxLayout()
+        #modes_group = QGroupBox("기타 설정")
+        #modes_layout = QVBoxLayout()
         self.dual_language_checkbox = QCheckBox("원문과 번역문 같이 표시")
         self.dual_language_checkbox.setChecked(self.settings.get("dual_language_mode", False))
-        modes_layout.addWidget(self.dual_language_checkbox)
+        #modes_layout.addWidget(self.dual_language_checkbox)
         self.completion_mode_checkbox = QCheckBox("번역 후 검수")
         self.completion_mode_checkbox.setChecked(self.settings.get("completion_mode", False))
         #modes_layout.addWidget(self.completion_mode_checkbox)
@@ -321,8 +321,8 @@ class AdvancedSettingsDialog(QDialog):
         self.language_input.setText(str(default_language))
         #modes_layout.addWidget(self.language_label)
         #modes_layout.addWidget(self.language_input)
-        modes_group.setLayout(modes_layout)
-        right_layout.addWidget(modes_group)
+        #modes_group.setLayout(modes_layout)
+        #right_layout.addWidget(modes_group)
 
         top_layout.addLayout(right_layout)
         main_layout.addLayout(top_layout)

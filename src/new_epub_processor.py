@@ -17,6 +17,7 @@ from dual_language import combine_dual_language
 from concurrent.futures import ThreadPoolExecutor
 import string
 import pycountry
+import html
 
 # --- 유틸리티 함수들 ---
 
@@ -66,9 +67,6 @@ def contains_hebrew(text: str) -> bool:
 def contains_devanagari(text: str) -> bool:
     return re.search(r'[\u0900-\u097F]', text) is not None
 
-def contains_greek(text: str) -> bool:
-    return re.search(r'[\u0370-\u03FF]', text) is not None
-
 def contains_english(text: str) -> bool:
     english_char_count = sum(1 for c in text if c in string.ascii_letters)
     total_alpha_count = sum(1 for c in text if c.isalpha())
@@ -79,7 +77,7 @@ def contains_english(text: str) -> bool:
 def contains_foreign(text: str, is_include_english: bool = False) -> bool:
     return (contains_arabic(text) or contains_japanese(text) or contains_cyrill(text) or
             (contains_english(text) if is_include_english else False) or
-            contains_thai(text) or contains_hebrew(text) or contains_devanagari(text) or contains_greek(text))
+            contains_thai(text) or contains_hebrew(text) or contains_devanagari(text))
 
 # --- EPUBProcessor 클래스 ---
 
@@ -341,8 +339,13 @@ class EPUBProcessor:
             for chap in chapter_files:
                 try:
                     content = self.file_contents[chap].decode('utf-8')
+
+                    # HTML 이스케이프 처리된 버전도 같이 치환
                     for jp, ko in proper_nouns.items():
-                        content = content.replace(jp, ko)
+                        escaped_ko = html.escape(ko)  # < → &lt;, > → &gt; 등 처리
+                        #content = content.replace(jp, ko)
+                        content = content.replace(jp, escaped_ko)
+
                     self.file_contents[chap] = content.encode('utf-8')
                 except Exception:
                     if progress_callback:
@@ -429,63 +432,102 @@ class EPUBProcessor:
         """
         번역 완성 모드 – 각 챕터 내 텍스트를 직접 축소(reduce) 처리.
         각 p, h1~h6 태그 내 텍스트에 대해 번역 후 반복 시도하여 적절한 결과 도출.
+        동시에 최대 max_concurrent_requests 개의 번역 API 호출을 허용합니다.
         """
         language = self.get_language()
 
         opf_tree, opf_path = self.get_opf_tree_and_path()
-        self.file_contents[opf_path] = ET.tostring(opf_tree, encoding='utf-8', xml_declaration=True)
-        
+        self.file_contents[opf_path] = ET.tostring(
+            opf_tree, encoding='utf-8', xml_declaration=True
+        )
+
         chapter_files = self.get_chapter_files(opf_tree, opf_path)
-        #self.preserve_original_chapters(chapter_files)
-        
         # 각 챕터 원문을 results에 저장
-        results = {chap: self.file_contents[chap].decode('utf-8') for chap in chapter_files}
-        executor = ThreadPoolExecutor(max_concurrent_requests)
-        
-        async def reduce_wrapper(chap):
-            def reduce_foreign_in_chapter(html):
-                soup = BeautifulSoup(html, 'lxml-xml')
-                for p in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
-                    if contains_foreign(p.get_text(), is_include_english=(language=='English')):
-                        for text_node in p.find_all(string=True):
-                            if contains_foreign(text_node, is_include_english=(language=='English')):
-                                original_text = text_node
-                                attempts = 0
-                                translated_text = original_text
-                                while attempts < 3:
-                                    try:
-                                        candidate = translate_text_for_completion(translated_text, language)
-                                        if len(candidate) > 2 * len(original_text):
-                                            attempts += 1
-                                        elif contains_foreign(candidate, is_include_english=(language=='English')):
-                                            attempts += 1
-                                            translated_text = candidate
-                                        elif len(candidate) == 0:
-                                            attempts += 1
-                                        else:
-                                            translated_text = candidate
-                                            attempts = 3
-                                    except Exception:
-                                        translated_text = original_text
-                                        attempts = 3
-                                text_node.replace_with(translated_text)
-                return str(soup)
+        results = {
+            chap: self.file_contents[chap].decode('utf-8')
+            for chap in chapter_files
+        }
+
+        # 최대 동시 번역 호출 제한을 위한 세마포어
+        semaphore = asyncio.Semaphore(max_concurrent_requests)
+
+        async def async_translate_text(text: str, language: str) -> str:
+            """
+            translate_text_for_completion을 비동기로 호출.
+            세마포어를 사용하여 동시에 호출되는 API 수를 제한합니다.
+            """
+            async with semaphore:
+                # 번역 함수는 동기이므로 asyncio.to_thread로 호출
+                return await asyncio.to_thread(translate_text_for_completion, text, language)
+
+        async def process_text_node(text_node):
+            """
+            하나의 텍스트 노드에 대해 최대 3회 번역 시도.
+            번역 결과가 조건에 맞을 경우 해당 노드를 대체합니다.
+            """
+            original_text = text_node
+            translated_text = original_text
+            attempts = 0
+            while attempts < 3:
+                try:
+                    candidate = await async_translate_text(translated_text, language)
+                    # 번역 결과가 원문보다 2배 이상 길면 반복 (과도한 반복문 또는 이상 발생)
+                    if len(candidate) > 2 * len(original_text):
+                        attempts += 1
+                    # 외국어가 여전히 포함되어 있으면 재시도
+                    elif contains_foreign(candidate, is_include_english=(language == 'English')):
+                        attempts += 1
+                        translated_text = candidate
+                    # 빈 결과도 재시도
+                    elif len(candidate) == 0:
+                        attempts += 1
+                    else:
+                        translated_text = candidate
+                        break  # 올바른 결과 수신 시 while 종료
+                except Exception:
+                    # 예외 발생 시 원문 유지 후 종료
+                    translated_text = original_text
+                    break
+            text_node.replace_with(translated_text)
+
+        async def process_chapter(chap: str) -> str:
+            """
+            하나의 챕터 HTML을 파싱 후 <p>, <h1>~<h6> 태그의 텍스트 노드를 찾아 번역 비동기 작업을 생성,
+            모든 번역 작업을 병렬로 수행합니다.
+            """
             html = results[chap]
-            new_html = await asyncio.get_running_loop().run_in_executor(executor, reduce_foreign_in_chapter, html)
+            soup = BeautifulSoup(html, 'lxml-xml')
+            translate_tasks = []
+
+            # 대상 태그 내의 텍스트 노드 검색
+            for tag in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
+                if contains_foreign(tag.get_text(), is_include_english=(language == 'English')):
+                    # 태그 내의 각 텍스트 노드를 개별 작업으로 처리
+                    for text_node in tag.find_all(string=True):
+                        if contains_foreign(text_node, is_include_english=(language == 'English')):
+                            translate_tasks.append(process_text_node(text_node))
+
+            # 해당 챕터 내 모든 텍스트 번역을 병렬 실행
+            if translate_tasks:
+                await asyncio.gather(*translate_tasks)
+            new_html = str(soup)
             new_html = self.force_horizontal_writing(new_html)
-            return chap, new_html
-        
-        reduction_tasks = [asyncio.create_task(reduce_wrapper(chap)) for chap in chapter_files]
-        total_reduction = len(reduction_tasks)
-        completed_reduction = 0
-        for task in asyncio.as_completed(reduction_tasks):
-            chap, new_html = await task
             self.file_contents[chap] = new_html.encode('utf-8')
-            completed_reduction += 1
+            return chap
+
+        # 모든 챕터별 번역 작업을 비동기적으로 생성
+        chapter_tasks = [process_chapter(chap) for chap in chapter_files]
+        total = len(chapter_tasks)
+        completed = 0
+
+        # as_completed로 완료된 챕터별 작업 처리하면서 진행 상황 업데이트
+        for task in asyncio.as_completed(chapter_tasks):
+            chap = await task
+            completed += 1
             if progress_callback:
-                progress = (completed_reduction / total_reduction) * 90
+                progress = (completed / total) * 90
                 progress_callback(int(progress))
-        
+
         self.save(output_path, progress_callback)
         if progress_callback:
             progress_callback(100)

@@ -4,20 +4,21 @@ import shutil
 from bs4 import BeautifulSoup
 
 def remove_ruby_tags_from_html(html_content):
-    soup = BeautifulSoup(html_content, "lxml-xml")
+    soup = BeautifulSoup(html_content, "html.parser")  # "html.parser"가 더 관대함
     
+    # <rt>와 <rp>는 제거 (속성 상관없이)
+    for tag_name in ["rt", "rp"]:
+        for tag in soup.find_all(tag_name):
+            tag.decompose()
+
+    # <rb>는 거의 사용되지 않지만, 만약 있다면 태그만 제거하고 텍스트는 유지
+    for rb in soup.find_all("rb"):
+        rb.unwrap()
+
+    # <ruby>는 태그만 제거하고 안의 텍스트는 유지
     for ruby in soup.find_all("ruby"):
-        # <rt>와 <rp>는 통째로 제거
-        for rt in ruby.find_all("rt"):
-            rt.decompose()
-        for rp in ruby.find_all("rp"):
-            rp.decompose()
-        # <rb>는 태그만 제거하고 텍스트는 남김
-        for rb in ruby.find_all("rb"):
-            rb.unwrap()
-        # <ruby> 자체도 제거하고 내부 텍스트만 유지
         ruby.unwrap()
-    
+
     return str(soup)
 
 def remove_ruby_from_epub(epub_path, progress_callback = None, log_callback = None):
