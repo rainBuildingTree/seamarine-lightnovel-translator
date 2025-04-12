@@ -3,3 +3,4 @@ dist
 *.epub
 *.json
 legacy/test/*
+*.log
