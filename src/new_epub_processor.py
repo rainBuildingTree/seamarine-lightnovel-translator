@@ -10,7 +10,8 @@ from translator_core import (
     translate_chunk_with_html,
     translate_chapter_async,
     annotate_image,
-    translate_chunk_for_enhance
+    translate_chunk_for_enhance,
+    translate_text_simple
 )
 from dual_language import combine_dual_language
 from concurrent.futures import ThreadPoolExecutor
@@ -250,7 +251,7 @@ class EPUBProcessor:
             title_elem = metadata_elem.find('dc:title', ns)
             if title_elem is not None and title_elem.text:
                 original_title = title_elem.text
-                translated_title = translate_text_for_completion(original_title, language)
+                translated_title = translate_text_simple(original_title, language)
                 title_elem.text = translated_title
         self.file_contents[opf_path] = ET.tostring(opf_tree, encoding='utf-8', xml_declaration=True)
         if progress_callback:
@@ -290,7 +291,7 @@ class EPUBProcessor:
                     if navLabel is not None:
                         text_elem = navLabel.find('ncx:text', ns_ncx)
                         if text_elem is not None and text_elem.text:
-                            text_elem.text = translate_chunk_for_enhance(text_elem.text, language)
+                            text_elem.text = translate_text_simple(text_elem.text, language)
                 updated_toc = ET.tostring(toc_tree, encoding='utf-8', xml_declaration=True)
                 self.file_contents[toc_path] = updated_toc
             else:
@@ -302,7 +303,7 @@ class EPUBProcessor:
                         a = li.find('a')
                         if a and a.string:
                             original_text = a.string
-                            translated_text = translate_chunk_for_enhance(original_text, language)
+                            translated_text = translate_text_simple(original_text, language)
                             a.string = translated_text
                 updated_toc = str(toc_soup).encode('utf-8')
                 self.file_contents[toc_path] = updated_toc
