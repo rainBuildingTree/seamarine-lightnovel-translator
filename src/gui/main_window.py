@@ -795,7 +795,6 @@ class MainWindow(QWidget):
                 input_path=self.epub_file,
                 output_path=self.output_path,
                 settings=self.settings,
-                max_concurrent=max_concurrent,
                 dual_language_mode=dual_language_mode,
                 completion_mode=completion_mode,
                 proper_nouns=proper_nouns,
