@@ -107,7 +107,7 @@ class TranslationWorker(BaseTranslatorWorker):
                  dual_language_mode=False, completion_mode=False, image_annotation_mode=False,
                  proper_nouns=None, parent=None):
         super().__init__(input_path, output_path, settings, parent)
-        self.max_concurrent = max_concurrent
+        self.max_concurrent = self.settings.get("max_concurrent_requests", 1)
         self.dual_language = dual_language_mode
         self.complete_mode = completion_mode
         self.image_annotation_mode = image_annotation_mode
@@ -145,7 +145,7 @@ class ProofreadingWorker(BaseTranslatorWorker):
                  dual_language_mode=False, completion_mode=False, image_annotation_mode=False,
                  proper_nouns=None, parent=None):
         super().__init__(input_path, output_path, settings, parent)
-        self.max_concurrent = max_concurrent
+        self.max_concurrent = self.settings.get("max_concurrent_requests", 1)
         self.dual_language = dual_language_mode
         self.complete_mode = completion_mode
         self.image_annotation_mode = image_annotation_mode
