@@ -338,7 +338,7 @@ def remove_russian_from_text(text):
             contents=prompt,    
             config=types.GenerateContentConfig(
             max_output_tokens=8192 if max_chunk_size < 8192 else max_chunk_size,
-            top_k=50,
+            top_k=40,
             top_p=0.85,
             temperature=1.8,
             )
@@ -368,7 +368,7 @@ def translate_chunk_for_enhance(html_fragment, language):
                 contents=prompt,    
                 config=types.GenerateContentConfig(
                 max_output_tokens=8192 if max_chunk_size < 8192 else max_chunk_size,
-                top_k=50,
+                top_k=40,
                 top_p=0.85,
                 temperature=1.8,
             ),
@@ -493,7 +493,7 @@ def annotate_image(img_bytes, language):
                     PIL.Image.open(io.BytesIO(img_bytes))
                 ],
                 config=types.GenerateContentConfig(
-                top_k= 50,
+                top_k= 40,
                 top_p= 0.85,
                 temperature= 0.8,
                 max_output_tokens=8192 if max_chunk_size < 8192 else max_chunk_size,
