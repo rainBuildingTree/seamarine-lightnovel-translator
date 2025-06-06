@@ -491,7 +491,7 @@ class AdvancedSettingsDialog(QDialog):
         self.gemini_model_combo.setCurrentText("Gemini 2.0 Flash")
 
     def change_api_key(self):
-        dialog = APIKeyDialog()
+        dialog = APIKeyDialog(self.settings) # self.settings 전달
         if dialog.exec_() == QDialog.Accepted and dialog.api_key:
             new_key = dialog.api_key
             self.settings["api_key"] = new_key
