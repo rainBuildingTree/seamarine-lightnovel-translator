@@ -491,11 +491,26 @@ class AdvancedSettingsDialog(QDialog):
         self.gemini_model_combo.setCurrentText("Gemini 2.0 Flash")
 
     def change_api_key(self):
-        dialog = APIKeyDialog(self.settings) # self.settings 전달
-        if dialog.exec_() == QDialog.Accepted and dialog.api_key:
-            new_key = dialog.api_key
-            self.settings["api_key"] = new_key
-            self.api_key_display.setText(new_key)
+        # self.settings는 APIKeyDialog와 공유되며, APIKeyDialog 내에서 직접 수정됩니다.
+        dialog = APIKeyDialog(self.settings)
+        
+        if dialog.exec_() == QDialog.Accepted:
+            # APIKeyDialog가 성공적으로 종료되면 self.settings는 이미 업데이트된 상태입니다.
+            # AdvancedSettingsDialog의 UI를 업데이트하고 설정을 저장합니다.
+
+            # API 키 표시 업데이트 (Vertex AI 사용 시 빈 문자열일 수 있음)
+            self.api_key_display.setText(self.settings.get("api_key", ""))
+
+            # Vertex AI 관련 UI 필드 업데이트
+            self.use_vertex_ai_checkbox.setChecked(self.settings.get("use_vertex_ai", False))
+            self.sa_json_path_input.setText(self.settings.get("service_account_json_path", ""))
+            self.gcp_project_id_input.setText(self.settings.get("gcp_project_id", ""))
+            self.gcp_location_input.setText(self.settings.get("gcp_location", "asia-northeast3"))
+            
+            # Vertex AI 필드 활성화 상태 업데이트
+            self.update_vertex_ai_fields_enabled_state()
+
+            # APIKeyDialog를 통해 변경된 설정을 영구 저장합니다.
             save_settings(self.settings)
 
     def save_settings(self):
