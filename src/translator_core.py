@@ -487,7 +487,7 @@ def annotate_image(img_bytes, language):
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model=llm_model,
                 contents=[
                     prompt,
                     PIL.Image.open(io.BytesIO(img_bytes))
