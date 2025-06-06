@@ -71,12 +71,14 @@ class BaseTranslatorWorker(QThread):
                 http_options=HttpOptions(timeout=10 * 60 * 1000)
             )
             self.log_signal.emit("Vertex AI 클라이언트 초기화 성공.")
+            self.log_signal.emit("인증 방식: Vertex AI (서비스 계정 또는 ADC)")
         else:
             self.log_signal.emit("표준 Gemini API 클라이언트 (API 키) 사용 중...")
             api_key = self.settings.get("api_key", "").strip()
             if not api_key: raise ValueError("표준 모드: API 키가 설정에서 누락되었습니다.")
             client_instance = genai.Client(api_key=api_key, http_options=HttpOptions(timeout=10 * 60 * 1000))
             self.log_signal.emit("표준 Gemini API 클라이언트 초기화 성공.")
+            self.log_signal.emit("인증 방식: API Key")
         
         self.client = client_instance
         translator_core.set_client(self.client)
@@ -239,11 +241,13 @@ class ExtractionWorker(QThread):
                 if not project_id_to_use: raise ValueError("ExtractionWorker (Vertex AI): GCP Project ID가 필요합니다.")
                 if not location_to_use: raise ValueError("ExtractionWorker (Vertex AI): GCP Location이 필요합니다.")
                 client_for_extractor = genai.Client(vertexai=True, project=project_id_to_use, location=location_to_use, credentials=credentials, http_options=HttpOptions(timeout=10*60*1000))
+                self.log_signal.emit("ExtractionWorker: Vertex AI 클라이언트 초기화 성공. (인증 방식: Vertex AI)")
             else:
                 self.log_signal.emit("ExtractionWorker: 표준 Gemini API 클라이언트 (API 키) 사용 중...")
                 api_key = self.settings.get("api_key", "").strip()
                 if not api_key: raise ValueError("ExtractionWorker (표준 모드): API 키가 설정에서 누락되었습니다.")
                 client_for_extractor = genai.Client(api_key=api_key, http_options=HttpOptions(timeout=10 * 60 * 1000))
+                self.log_signal.emit("ExtractionWorker: 표준 Gemini API 클라이언트 초기화 성공. (인증 방식: API Key)")
 
             gemini_model = self.settings.get("gemini_model", "gemini-2.0-flash")
             extractor = ProperNounExtractor(self.input_path, client_for_extractor, gemini_model)
