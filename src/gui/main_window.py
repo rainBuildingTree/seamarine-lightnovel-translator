@@ -518,11 +518,7 @@ class MainWindow(QWidget):
             self.toc_translation_worker = TocTranslationWorker(
                 input_path=self.epub_file,
                 output_path=self.epub_file,
-                gemini_model=self.settings.get("gemini_model", "gemini-2.0-flash"),
-                chunk_size=1500,
-                custom_prompt="",
-                api_key=self.settings.get("api_key", "").strip(),
-                delay=self.settings.get("request_delay", 0),
+                settings=self.settings
             )
             self.toc_translation_worker.progress_signal.connect(self.update_progress)
             self.toc_translation_worker.log_signal.connect(self.log_text_box.append)
@@ -554,14 +550,8 @@ class MainWindow(QWidget):
             self.completion_translation_worker = ProofreadingWorker(
                 input_path=self.epub_file,
                 output_path=self.epub_file,
-                max_concurrent=1,
-                gemini_model=self.settings.get("gemini_model", "gemini-2.0-flash"),
-                chunk_size=1500,
-                custom_prompt="",
-                api_key=self.settings.get("api_key", "").strip(),
-                delay=self.settings.get("request_delay", 0),
-                dual_language_mode=False,
-                completion_mode=False,
+                settings=self.settings,
+                # max_concurrent는 ProofreadingWorker 내부에서 settings.get("max_concurrent_requests")로 가져옴
                 proper_nouns=proper_nouns,
             )
             self.completion_translation_worker.progress_signal.connect(self.update_progress)
@@ -581,27 +571,19 @@ class MainWindow(QWidget):
             self.log_text_box.append("먼저 EPUB 파일을 선택해주세요.")
             return
         
-        # 설정값 로드
-        api_key = self.settings.get("api_key", "").strip()
-        gemini_model = self.settings.get("gemini_model", "gemini-2.0-flash")
-        chunk_size = self.settings.get("chunk_size", 1500)
-        custom_prompt = self.settings.get("custom_prompt", "")
-        delay = self.settings.get("request_delay", 0)
-        
         # 출력 파일 경로 설정: 기존 파일명을 기반으로 "_dual_language.epub" 확장자를 사용
         dir_name = os.path.dirname(self.epub_file)
         base_name = os.path.splitext(os.path.basename(self.epub_file))[0]
         output_path = os.path.join(dir_name, base_name + "_dual_language.epub")
         
         # DualLanguageApplyWorker 인스턴스 생성
+        # DualLanguageApplyWorker의 생성자 시그니처에 맞게 settings 전달
         self.dual_language_worker = DualLanguageApplyWorker(
             input_path=self.epub_file,
             output_path=output_path,
-            api_key=api_key,
-            gemini_model=gemini_model,
-            chunk_size=chunk_size,
-            custom_prompt=custom_prompt,
-            delay=delay,
+            settings=self.settings, # settings 객체 전달
+            # 나머지 파라미터는 DualLanguageApplyWorker가 settings에서 가져오거나 기본값을 사용
+            api_key=None, gemini_model=None, chunk_size=None, custom_prompt=None, delay=None, # 기존 호출 방식 호환을 위해 None 전달, 실제로는 settings 사용
             parent=self
         )
         # 작업 진행률, 로그, 완료 시그널 연결
@@ -646,14 +628,8 @@ class MainWindow(QWidget):
             self.completion_translation_worker = ImageAnnotationWorker(
                 input_path=self.epub_file,
                 output_path=self.epub_file,
-                max_concurrent=1,
-                gemini_model=self.settings.get("gemini_model", "gemini-2.0-flash"),
-                chunk_size=1500,
-                custom_prompt="",
-                api_key=self.settings.get("api_key", "").strip(),
-                delay=self.settings.get("request_delay", 0),
-                dual_language_mode=False,
-                completion_mode=False,
+                settings=self.settings,
+                # max_concurrent는 ImageAnnotationWorker 내부에서 settings.get("max_concurrent_requests")로 가져옴
                 proper_nouns=proper_nouns,
             )
             self.completion_translation_worker.progress_signal.connect(self.update_progress)
@@ -690,8 +666,7 @@ class MainWindow(QWidget):
                     self.extraction_worker = ExtractionWorker(
                         input_path=self.epub_file,
                         output_path=pn_csv_path,
-                        api_key=self.settings.get("api_key", "").strip(),
-                        gemini_model=self.settings.get("gemini_model", "gemini-2.0-flash"),
+                        settings=self.settings,
                         delay=self.settings.get("request_delay", 0),
                         max_concurrent_requests=self.settings.get("max_concurrent_requests", 1),
                     )
@@ -709,8 +684,7 @@ class MainWindow(QWidget):
                 self.extraction_worker = ExtractionWorker(
                     input_path=self.epub_file,
                     output_path=pn_csv_path,
-                    api_key=self.settings.get("api_key", "").strip(),
-                    gemini_model=self.settings.get("gemini_model", "gemini-2.0-flash"),
+                    settings=self.settings,
                     delay=self.settings.get("request_delay", 0),
                     max_concurrent_requests=self.settings.get("max_concurrent_requests", 1),
                 )
@@ -790,22 +764,13 @@ class MainWindow(QWidget):
             self.log_text_box.append("EPUB 파일을 선택하세요.")
             return
         
-        api_key = self.settings.get("api_key", "").strip()
         max_concurrent = self.settings.get("max_concurrent_requests", 1)
-        gemini_model = self.settings.get("gemini_model", "gemini-2.0-flash")
-        chunk_size = self.settings.get("chunk_size", 1500)
-        custom_prompt = self.settings.get("custom_prompt", "")
         dual_language_mode = self.settings.get("dual_language_mode", False)
         completion_mode = self.settings.get("completion_mode", False)
-        delay = self.settings.get("request_delay", 0)
         image_annotation_mode = self.settings.get("image_annotation_mode", False)
         dir_name = os.path.dirname(self.epub_file)
         base_name = os.path.splitext(os.path.basename(self.epub_file))[0]
         self.output_path = os.path.join(dir_name, base_name + "_translated.epub")
-        
-        if not api_key:
-            self.log_text_box.append("API 키가 설정되어 있지 않습니다.")
-            return
         
         pn_csv_path = os.path.join(dir_name, base_name + "_proper_nouns.csv")
         proper_nouns = None
@@ -829,12 +794,8 @@ class MainWindow(QWidget):
             self.worker = TranslationWorker(
                 input_path=self.epub_file,
                 output_path=self.output_path,
+                settings=self.settings,
                 max_concurrent=max_concurrent,
-                gemini_model=gemini_model,
-                chunk_size=chunk_size,
-                custom_prompt=custom_prompt,
-                api_key=api_key,
-                delay=delay,
                 dual_language_mode=dual_language_mode,
                 completion_mode=completion_mode,
                 proper_nouns=proper_nouns,

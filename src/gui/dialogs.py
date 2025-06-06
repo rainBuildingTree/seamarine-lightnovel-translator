@@ -1,7 +1,7 @@
 import os
 import csv
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QMessageBox, QComboBox, QCheckBox, QTextEdit, QGroupBox, QTableWidget, QTableWidgetItem
+    QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QMessageBox, QComboBox, QCheckBox, QTextEdit, QGroupBox, QTableWidget, QTableWidgetItem, QFileDialog
 )
 from PyQt5.QtCore import QUrl, Qt
 from PyQt5.QtGui import QDesktopServices, QIntValidator, QDoubleValidator, QPixmap
@@ -217,6 +217,7 @@ class AdvancedSettingsDialog(QDialog):
         self.setWindowTitle("Advanced Settings")
         self.settings = settings
         self.initUI()
+        self.update_vertex_ai_fields_enabled_state()
 
     def initUI(self):
         main_layout = QVBoxLayout()
@@ -248,6 +249,36 @@ class AdvancedSettingsDialog(QDialog):
             self.tier_combo.setCurrentIndex(index)
         api_layout.addWidget(self.tier_combo)
         api_group.setLayout(api_layout)
+
+        # --- Vertex AI Group ---
+        vertex_ai_group = QGroupBox("Vertex AI 설정")
+        vertex_ai_layout = QVBoxLayout()
+        self.use_vertex_ai_checkbox = QCheckBox("Vertex AI 사용")
+        self.use_vertex_ai_checkbox.setChecked(self.settings.get("use_vertex_ai", False))
+        self.use_vertex_ai_checkbox.stateChanged.connect(self.update_vertex_ai_fields_enabled_state)
+        vertex_ai_layout.addWidget(self.use_vertex_ai_checkbox)
+
+        self.sa_json_path_label = QLabel("서비스 계정 JSON 파일 경로:")
+        vertex_ai_layout.addWidget(self.sa_json_path_label)
+        sa_path_layout = QHBoxLayout()
+        self.sa_json_path_input = QLineEdit(self.settings.get("service_account_json_path", ""))
+        sa_path_layout.addWidget(self.sa_json_path_input)
+        self.sa_json_browse_button = QPushButton("찾아보기")
+        self.sa_json_browse_button.clicked.connect(self.browse_sa_json)
+        sa_path_layout.addWidget(self.sa_json_browse_button)
+        vertex_ai_layout.addLayout(sa_path_layout)
+
+        self.gcp_project_id_label = QLabel("GCP Project ID:")
+        vertex_ai_layout.addWidget(self.gcp_project_id_label)
+        self.gcp_project_id_input = QLineEdit(self.settings.get("gcp_project_id", ""))
+        vertex_ai_layout.addWidget(self.gcp_project_id_input)
+        self.gcp_location_label = QLabel("GCP Location (e.g., asia-northeast3):")
+        vertex_ai_layout.addWidget(self.gcp_location_label)
+        self.gcp_location_input = QLineEdit(self.settings.get("gcp_location", "asia-northeast3"))
+        vertex_ai_layout.addWidget(self.gcp_location_input)
+        vertex_ai_group.setLayout(vertex_ai_layout)
+
+
         left_layout.addWidget(api_group)
 
         # --- Gemini Model Group ---
@@ -271,6 +302,7 @@ class AdvancedSettingsDialog(QDialog):
             self.gemini_model_combo.setCurrentText(reverse_mapping.get(saved_model, saved_model))
         gemini_group.setLayout(gemini_layout)
         left_layout.addWidget(gemini_group)
+        left_layout.addWidget(vertex_ai_group) # Vertex AI 그룹 추가
 
         top_layout.addLayout(left_layout)
 
@@ -353,6 +385,27 @@ class AdvancedSettingsDialog(QDialog):
 
         self.setLayout(main_layout)
 
+    def browse_sa_json(self):
+        path, _ = QFileDialog.getOpenFileName(self, "서비스 계정 JSON 파일 선택", "", "JSON Files (*.json)")
+        if path:
+            self.sa_json_path_input.setText(path)
+
+    def update_vertex_ai_fields_enabled_state(self):
+        use_vertex = self.use_vertex_ai_checkbox.isChecked()
+        self.sa_json_path_label.setEnabled(use_vertex)
+        self.sa_json_path_input.setEnabled(use_vertex)
+        self.sa_json_browse_button.setEnabled(use_vertex)
+        self.gcp_project_id_label.setEnabled(use_vertex)
+        self.gcp_project_id_input.setEnabled(use_vertex)
+        self.gcp_location_label.setEnabled(use_vertex)
+        self.gcp_location_input.setEnabled(use_vertex)
+
+        # API 키 관련 필드는 Vertex AI 사용 시 선택적으로 비활성화 가능
+        # self.api_key_display.setEnabled(not use_vertex)
+        # self.change_key_button.setEnabled(not use_vertex)
+
+
+
     def optimize_settings(self):
         # Use the current tier from the combo box and the custom prompt from this dialog
         tier = self.tier_combo.currentText().lower()  # "free" or "paid"
@@ -403,6 +456,12 @@ class AdvancedSettingsDialog(QDialog):
         except ValueError:
             self.settings["request_delay"] = 0.0
         self.settings["custom_prompt"] = self.custom_prompt_input.toPlainText()
+        # Vertex AI settings
+        self.settings["use_vertex_ai"] = self.use_vertex_ai_checkbox.isChecked()
+        self.settings["service_account_json_path"] = self.sa_json_path_input.text()
+        self.settings["gcp_project_id"] = self.gcp_project_id_input.text()
+        self.settings["gcp_location"] = self.gcp_location_input.text()
+        
         self.settings["dual_language_mode"] = self.dual_language_checkbox.isChecked()
         self.settings["completion_mode"] = self.completion_mode_checkbox.isChecked()
         self.settings["image_annotation_mode"] = self.image_annotation_checkbox.isChecked()
