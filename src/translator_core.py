@@ -297,7 +297,7 @@ def translate_text_simple(text, language):
                 model=llm_model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                max_output_tokens=8192 if max_chunk_size < 8192 else max_chunk_size,
+                max_output_tokens=65535,
             ),
             )
             output = response.text.strip()
@@ -337,7 +337,7 @@ def remove_russian_from_text(text):
             model=llm_model,
             contents=prompt,    
             config=types.GenerateContentConfig(
-            max_output_tokens=8192 if max_chunk_size < 8192 else max_chunk_size,
+            max_output_tokens=65535,
             top_k=40,
             top_p=0.85,
             temperature=1.8,
@@ -367,7 +367,7 @@ def translate_chunk_for_enhance(html_fragment, language):
                 model=llm_model,
                 contents=prompt,    
                 config=types.GenerateContentConfig(
-                max_output_tokens=8192 if max_chunk_size < 8192 else max_chunk_size,
+                max_output_tokens=65535,
                 top_k=40,
                 top_p=0.85,
                 temperature=1.8,
@@ -436,7 +436,7 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index, languag
         config=types.GenerateContentConfig(
             top_p=0.8,
             temperature=1.8,
-            max_output_tokens=8192 if max_chunk_size < 8192 else max_chunk_size,
+            max_output_tokens=65535,
         ),
     )
     # response.text가 None인 경우를 확인하고 로깅
@@ -503,7 +503,7 @@ def annotate_image(img_bytes, language):
                 top_k= 40,
                 top_p= 0.85,
                 temperature= 0.8,
-                max_output_tokens=8192 if max_chunk_size < 8192 else max_chunk_size,
+                max_output_tokens=65535,
                 frequency_penalty=0.5,
                 ),
             )
