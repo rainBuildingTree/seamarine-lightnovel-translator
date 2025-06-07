@@ -150,10 +150,10 @@ class APIKeyDialog(QDialog):
         self.sa_json_browse_button.clicked.connect(self.browse_sa_json)
         sa_path_layout.addWidget(self.sa_json_browse_button)
         vertex_ai_layout.addLayout(sa_path_layout)
-        self.gcp_project_id_label = QLabel("GCP Project ID (필수):")
+        self.gcp_project_id_label = QLabel("GCP Project ID")
         vertex_ai_layout.addWidget(self.gcp_project_id_label)
         self.gcp_project_id_input = QLineEdit(self.settings.get("gcp_project_id", ""))
-        self.gcp_project_id_input.setPlaceholderText("예: your-gcp-project-id")
+        self.gcp_project_id_input.setPlaceholderText("비워둘 경우 자동으로 채워집니다")
         vertex_ai_layout.addWidget(self.gcp_project_id_input)
         self.gcp_location_label = QLabel("GCP Location (필수, 예: asia-northeast3):")
         vertex_ai_layout.addWidget(self.gcp_location_label)
@@ -189,9 +189,7 @@ class APIKeyDialog(QDialog):
             project_id = self.gcp_project_id_input.text().strip()
             location = self.gcp_location_input.text().strip()
 
-            if not project_id:
-                QMessageBox.warning(self, "입력 오류", "Vertex AI 사용 시 GCP Project ID는 필수입니다.")
-                return
+
             if not location:
                 QMessageBox.warning(self, "입력 오류", "Vertex AI 사용 시 GCP Location은 필수입니다.")
                 return
