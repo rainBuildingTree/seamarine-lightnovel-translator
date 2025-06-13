@@ -42,7 +42,7 @@ class TranslationWorker(QThread):
             translator_core.set_japanese_char_threshold(int(self.chunk_size / 50.0))
             def progress_callback(percent):
                 self.progress_signal.emit(int(percent))
-            from epub_processor import translate_epub_async
+            from epub_processor import translate_epub_async # type: ignore
             asyncio.run(translate_epub_async(
                 self.input_path,
                 self.output_path,
@@ -96,7 +96,7 @@ class CompletionTranslationWorker(QThread):
             translator_core.set_japanese_char_threshold(int(self.chunk_size / 50.0))
             def progress_callback(percent):
                 self.progress_signal.emit(int(percent))
-            from epub_processor import translate_completion_async
+            from epub_processor import translate_completion_async # type: ignore
             asyncio.run(translate_completion_async(
                 self.input_path,
                 self.output_path,
@@ -151,7 +151,7 @@ class ImageAnnotationWorker(QThread):
             translator_core.set_japanese_char_threshold(int(self.chunk_size / 50.0))
             def progress_callback(percent):
                 self.progress_signal.emit(int(percent))
-            from epub_processor import annotate_images
+            from epub_processor import annotate_images # type: ignore
             asyncio.run(annotate_images(
                 self.input_path,
                 self.output_path,
@@ -205,7 +205,7 @@ class TocTranslationWorker(QThread):
             translator_core.set_japanese_char_threshold(int(self.chunk_size / 50.0))
             def progress_callback(percent):
                 self.progress_signal.emit(int(percent))
-            from epub_processor import translate_miscellaneous_async
+            from epub_processor import translate_miscellaneous_async # type: ignore
             asyncio.run(translate_miscellaneous_async(
                 self.input_path,
                 self.output_path,

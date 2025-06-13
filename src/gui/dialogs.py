@@ -1,7 +1,7 @@
 import os
 import csv
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QMessageBox, QComboBox, QCheckBox, QTextEdit, QGroupBox, QTableWidget, QTableWidgetItem
+    QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QMessageBox, QComboBox, QCheckBox, QTextEdit, QGroupBox, QTableWidget, QTableWidgetItem, QFileDialog
 )
 from PyQt5.QtCore import QUrl, Qt
 from PyQt5.QtGui import QDesktopServices, QIntValidator, QDoubleValidator, QPixmap
@@ -105,51 +105,114 @@ class EasterEggDialog(QDialog):
 
 # --- API Key Entry Window (used for initial entry and via Advanced Settings) ---
 # You may want to convert this to a QDialog for modal behavior.
+# This dialog now also handles initial Vertex AI setup.
 class APIKeyDialog(QDialog):
-    def __init__(self):
+    def __init__(self, settings):
         super().__init__()
-        self.setWindowTitle("Sea Marine")
-        self.api_key = None
+        self.settings = settings
+        self.setWindowTitle("Sea Marine 인증 설정")
         self.initUI()
-        
+        self.toggle_auth_mode_ui() # Initial UI state based on settings
+
     def initUI(self):
         layout = QVBoxLayout()
-        
+
+        # --- Auth Mode Selection ---
+        self.use_vertex_ai_checkbox = QCheckBox("Vertex AI 사용 (서비스 계정 또는 ADC)")
+        self.use_vertex_ai_checkbox.setChecked(self.settings.get("use_vertex_ai", False))
+        self.use_vertex_ai_checkbox.stateChanged.connect(self.toggle_auth_mode_ui)
+        layout.addWidget(self.use_vertex_ai_checkbox)
+
+        # --- API Key Group ---
+        self.api_key_group = QGroupBox("Gemini API 키 설정")
+        api_key_layout = QVBoxLayout()
         self.info_label = QLabel("Google Gemini API 키를 입력하세요:")
-        layout.addWidget(self.info_label)
-        
-        self.api_key_input = QLineEdit()
+        api_key_layout.addWidget(self.info_label)
+        self.api_key_input = QLineEdit(self.settings.get("api_key", ""))
         self.api_key_input.setPlaceholderText("여기에 API 키를 입력하세요")
-        layout.addWidget(self.api_key_input)
-        
-        # Button to open API key link
+        api_key_layout.addWidget(self.api_key_input)
         self.link_button = QPushButton("API 키 확인/발급 하러가기")
         self.link_button.clicked.connect(self.open_api_link)
-        layout.addWidget(self.link_button)
-        
-        # Button to check API key
-        self.check_button = QPushButton("API Key 체크")
-        self.check_button.clicked.connect(self.validate_api_key)
-        layout.addWidget(self.check_button)
-        
+        api_key_layout.addWidget(self.link_button)
+        self.api_key_group.setLayout(api_key_layout)
+        layout.addWidget(self.api_key_group)
+
+        # --- Vertex AI Group ---
+        self.vertex_ai_group = QGroupBox("Vertex AI 설정")
+        vertex_ai_layout = QVBoxLayout()
+        self.sa_json_path_label = QLabel("서비스 계정 JSON 파일 경로 (선택 사항):")
+        vertex_ai_layout.addWidget(self.sa_json_path_label)
+        sa_path_layout = QHBoxLayout()
+        self.sa_json_path_input = QLineEdit(self.settings.get("service_account_json_path", ""))
+        self.sa_json_path_input.setPlaceholderText("예: /path/to/your-service-account.json")
+        sa_path_layout.addWidget(self.sa_json_path_input)
+        self.sa_json_browse_button = QPushButton("찾아보기")
+        self.sa_json_browse_button.clicked.connect(self.browse_sa_json)
+        sa_path_layout.addWidget(self.sa_json_browse_button)
+        vertex_ai_layout.addLayout(sa_path_layout)
+        self.gcp_project_id_label = QLabel("GCP Project ID")
+        vertex_ai_layout.addWidget(self.gcp_project_id_label)
+        self.gcp_project_id_input = QLineEdit(self.settings.get("gcp_project_id", ""))
+        self.gcp_project_id_input.setPlaceholderText("비워둘 경우 자동으로 채워집니다")
+        vertex_ai_layout.addWidget(self.gcp_project_id_input)
+        self.gcp_location_label = QLabel("GCP Location (필수, 예: asia-northeast3):")
+        vertex_ai_layout.addWidget(self.gcp_location_label)
+        self.gcp_location_input = QLineEdit(self.settings.get("gcp_location", "asia-northeast3"))
+        vertex_ai_layout.addWidget(self.gcp_location_input)
+        self.vertex_ai_group.setLayout(vertex_ai_layout)
+        layout.addWidget(self.vertex_ai_group)
+
+        # --- Save Button ---
+        self.save_button = QPushButton("설정 저장 및 계속")
+        self.save_button.clicked.connect(self.save_configuration)
+        layout.addWidget(self.save_button)
+
         self.setLayout(layout)
-    
+
+    def toggle_auth_mode_ui(self):
+        use_vertex = self.use_vertex_ai_checkbox.isChecked()
+        self.vertex_ai_group.setVisible(use_vertex)
+        self.api_key_group.setVisible(not use_vertex)
+
+    def browse_sa_json(self):
+        path, _ = QFileDialog.getOpenFileName(self, "서비스 계정 JSON 파일 선택", "", "JSON Files (*.json)")
+        if path:
+            self.sa_json_path_input.setText(path)
+
     def open_api_link(self):
         url = QUrl("https://aistudio.google.com/app/apikey")
         QDesktopServices.openUrl(url)
-    
-    def validate_api_key(self):
-        entered_key = self.api_key_input.text().strip()
-        if not entered_key:
-            QMessageBox.warning(self, "입력 에러", "API 키를 작성해주세요.")
-            return
-        
-        if check_api_key(entered_key):
-            QMessageBox.information(self, "성공", "API 키가 유효합니다.")
-            self.api_key = entered_key
+
+    def save_configuration(self):
+        if self.use_vertex_ai_checkbox.isChecked():
+            sa_path = self.sa_json_path_input.text().strip()
+            project_id = self.gcp_project_id_input.text().strip()
+            location = self.gcp_location_input.text().strip()
+
+
+            if not location:
+                QMessageBox.warning(self, "입력 오류", "Vertex AI 사용 시 GCP Location은 필수입니다.")
+                return
+
+            self.settings["use_vertex_ai"] = True
+            self.settings["service_account_json_path"] = sa_path
+            self.settings["gcp_project_id"] = project_id
+            self.settings["gcp_location"] = location
+            # self.settings["api_key"] = "" # Clear API key if Vertex AI is chosen
+            QMessageBox.information(self, "Vertex AI 설정 저장됨", "Vertex AI 설정이 저장되었습니다.")
             self.accept()
         else:
-            QMessageBox.critical(self, "유효하지 않은 API 키", "입력하신 API 키가 유효하지 않습니다. 다시 확인해주세요.")
+            entered_key = self.api_key_input.text().strip()
+            if not entered_key:
+                QMessageBox.warning(self, "입력 오류", "API 키를 입력해주세요.")
+                return
+            if check_api_key(entered_key): # API 키 유효성 검사
+                self.settings["api_key"] = entered_key
+                self.settings["use_vertex_ai"] = False
+                QMessageBox.information(self, "API 키 저장됨", "API 키가 유효하며 저장되었습니다.")
+                self.accept()
+            else:
+                QMessageBox.critical(self, "유효하지 않은 API 키", "입력하신 API 키가 유효하지 않습니다. 다시 확인해주세요.")
 
 # --- Tier Selection Window ---
 class TierSelectionDialog(QDialog):
@@ -217,6 +280,7 @@ class AdvancedSettingsDialog(QDialog):
         self.setWindowTitle("Advanced Settings")
         self.settings = settings
         self.initUI()
+        self.update_vertex_ai_fields_enabled_state()
 
     def initUI(self):
         main_layout = QVBoxLayout()
@@ -248,6 +312,36 @@ class AdvancedSettingsDialog(QDialog):
             self.tier_combo.setCurrentIndex(index)
         api_layout.addWidget(self.tier_combo)
         api_group.setLayout(api_layout)
+
+        # --- Vertex AI Group ---
+        vertex_ai_group = QGroupBox("Vertex AI 설정")
+        vertex_ai_layout = QVBoxLayout()
+        self.use_vertex_ai_checkbox = QCheckBox("Vertex AI 사용")
+        self.use_vertex_ai_checkbox.setChecked(self.settings.get("use_vertex_ai", False))
+        self.use_vertex_ai_checkbox.stateChanged.connect(self.update_vertex_ai_fields_enabled_state)
+        vertex_ai_layout.addWidget(self.use_vertex_ai_checkbox)
+
+        self.sa_json_path_label = QLabel("서비스 계정 JSON 파일 경로:")
+        vertex_ai_layout.addWidget(self.sa_json_path_label)
+        sa_path_layout = QHBoxLayout()
+        self.sa_json_path_input = QLineEdit(self.settings.get("service_account_json_path", ""))
+        sa_path_layout.addWidget(self.sa_json_path_input)
+        self.sa_json_browse_button = QPushButton("찾아보기")
+        self.sa_json_browse_button.clicked.connect(self.browse_sa_json)
+        sa_path_layout.addWidget(self.sa_json_browse_button)
+        vertex_ai_layout.addLayout(sa_path_layout)
+
+        self.gcp_project_id_label = QLabel("GCP Project ID:")
+        vertex_ai_layout.addWidget(self.gcp_project_id_label)
+        self.gcp_project_id_input = QLineEdit(self.settings.get("gcp_project_id", ""))
+        vertex_ai_layout.addWidget(self.gcp_project_id_input)
+        self.gcp_location_label = QLabel("GCP Location (e.g., asia-northeast3):")
+        vertex_ai_layout.addWidget(self.gcp_location_label)
+        self.gcp_location_input = QLineEdit(self.settings.get("gcp_location", "asia-northeast3"))
+        vertex_ai_layout.addWidget(self.gcp_location_input)
+        vertex_ai_group.setLayout(vertex_ai_layout)
+
+
         left_layout.addWidget(api_group)
 
         # --- Gemini Model Group ---
@@ -271,6 +365,7 @@ class AdvancedSettingsDialog(QDialog):
             self.gemini_model_combo.setCurrentText(reverse_mapping.get(saved_model, saved_model))
         gemini_group.setLayout(gemini_layout)
         left_layout.addWidget(gemini_group)
+        left_layout.addWidget(vertex_ai_group) # Vertex AI 그룹 추가
 
         top_layout.addLayout(left_layout)
 
@@ -353,6 +448,27 @@ class AdvancedSettingsDialog(QDialog):
 
         self.setLayout(main_layout)
 
+    def browse_sa_json(self):
+        path, _ = QFileDialog.getOpenFileName(self, "서비스 계정 JSON 파일 선택", "", "JSON Files (*.json)")
+        if path:
+            self.sa_json_path_input.setText(path)
+
+    def update_vertex_ai_fields_enabled_state(self):
+        use_vertex = self.use_vertex_ai_checkbox.isChecked()
+        self.sa_json_path_label.setEnabled(use_vertex)
+        self.sa_json_path_input.setEnabled(use_vertex)
+        self.sa_json_browse_button.setEnabled(use_vertex)
+        self.gcp_project_id_label.setEnabled(use_vertex)
+        self.gcp_project_id_input.setEnabled(use_vertex)
+        self.gcp_location_label.setEnabled(use_vertex)
+        self.gcp_location_input.setEnabled(use_vertex)
+
+        # API 키 관련 필드는 Vertex AI 사용 시 선택적으로 비활성화 가능
+        # self.api_key_display.setEnabled(not use_vertex)
+        # self.change_key_button.setEnabled(not use_vertex)
+
+
+
     def optimize_settings(self):
         # Use the current tier from the combo box and the custom prompt from this dialog
         tier = self.tier_combo.currentText().lower()  # "free" or "paid"
@@ -373,11 +489,26 @@ class AdvancedSettingsDialog(QDialog):
         self.gemini_model_combo.setCurrentText("Gemini 2.0 Flash")
 
     def change_api_key(self):
-        dialog = APIKeyDialog()
-        if dialog.exec_() == QDialog.Accepted and dialog.api_key:
-            new_key = dialog.api_key
-            self.settings["api_key"] = new_key
-            self.api_key_display.setText(new_key)
+        # self.settings는 APIKeyDialog와 공유되며, APIKeyDialog 내에서 직접 수정됩니다.
+        dialog = APIKeyDialog(self.settings)
+        
+        if dialog.exec_() == QDialog.Accepted:
+            # APIKeyDialog가 성공적으로 종료되면 self.settings는 이미 업데이트된 상태입니다.
+            # AdvancedSettingsDialog의 UI를 업데이트하고 설정을 저장합니다.
+
+            # API 키 표시 업데이트 (Vertex AI 사용 시 빈 문자열일 수 있음)
+            self.api_key_display.setText(self.settings.get("api_key", ""))
+
+            # Vertex AI 관련 UI 필드 업데이트
+            self.use_vertex_ai_checkbox.setChecked(self.settings.get("use_vertex_ai", False))
+            self.sa_json_path_input.setText(self.settings.get("service_account_json_path", ""))
+            self.gcp_project_id_input.setText(self.settings.get("gcp_project_id", ""))
+            self.gcp_location_input.setText(self.settings.get("gcp_location", "asia-northeast3"))
+            
+            # Vertex AI 필드 활성화 상태 업데이트
+            self.update_vertex_ai_fields_enabled_state()
+
+            # APIKeyDialog를 통해 변경된 설정을 영구 저장합니다.
             save_settings(self.settings)
 
     def save_settings(self):
@@ -403,6 +534,12 @@ class AdvancedSettingsDialog(QDialog):
         except ValueError:
             self.settings["request_delay"] = 0.0
         self.settings["custom_prompt"] = self.custom_prompt_input.toPlainText()
+        # Vertex AI settings
+        self.settings["use_vertex_ai"] = self.use_vertex_ai_checkbox.isChecked()
+        self.settings["service_account_json_path"] = self.sa_json_path_input.text()
+        self.settings["gcp_project_id"] = self.gcp_project_id_input.text()
+        self.settings["gcp_location"] = self.gcp_location_input.text()
+        
         self.settings["dual_language_mode"] = self.dual_language_checkbox.isChecked()
         self.settings["completion_mode"] = self.completion_mode_checkbox.isChecked()
         self.settings["image_annotation_mode"] = self.image_annotation_checkbox.isChecked()

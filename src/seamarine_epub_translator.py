@@ -7,25 +7,32 @@ from gui.main_window import MainWindow
 def main():
     app = QApplication(sys.argv)
     settings = load_settings()
-    api_key = settings.get("api_key")
-    tier = settings.get("tier")
-
-    if not api_key:
-        api_dialog = APIKeyDialog()
+    # Check if authentication is configured (either API key or Vertex AI)
+    auth_configured = False
+    if settings.get("use_vertex_ai", False):
+        # For Vertex AI, project_id and location are essential. SA key is optional (for ADC).
+        if settings.get("gcp_project_id") and settings.get("gcp_location"):
+            auth_configured = True
+    elif settings.get("api_key"):
+        auth_configured = True
+    if not auth_configured:
+        api_dialog = APIKeyDialog(settings) # Pass settings to the dialog
+        
         if api_dialog.exec_() == QDialog.Accepted:
-            api_key = api_dialog.api_key
-            settings["api_key"] = api_key
-            save_settings(settings)
+            # Settings are modified in-place by APIKeyDialog
+            save_settings(settings) # Save the updated settings        
         else:
             sys.exit(0)
 
-    if not tier:
+    # Show TierSelectionDialog only if API key is used and tier is not set
+    if not settings.get("use_vertex_ai") and not settings.get("tier"):        
         tier_dialog = TierSelectionDialog(settings)
         if tier_dialog.exec_() == QDialog.Accepted:
-            settings["tier"] = tier_dialog.tier
-            save_settings(settings)
+            # TierSelectionDialog saves settings internally
+            pass
         else:
-            settings["tier"] = "free"  # or handle as needed
+            settings["tier"] = "free"  # Default to free if cancelled
+            save_settings(settings)
 
     main_window = MainWindow(settings)
     main_window.show()

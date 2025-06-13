@@ -297,7 +297,7 @@ def translate_text_simple(text, language):
                 model=llm_model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                max_output_tokens=8192 if max_chunk_size < 8192 else max_chunk_size,
+                max_output_tokens=65535,
             ),
             )
             output = response.text.strip()
@@ -337,8 +337,8 @@ def remove_russian_from_text(text):
             model=llm_model,
             contents=prompt,    
             config=types.GenerateContentConfig(
-            max_output_tokens=8192 if max_chunk_size < 8192 else max_chunk_size,
-            top_k=50,
+            max_output_tokens=65535,
+            top_k=40,
             top_p=0.85,
             temperature=1.8,
             )
@@ -367,8 +367,8 @@ def translate_chunk_for_enhance(html_fragment, language):
                 model=llm_model,
                 contents=prompt,    
                 config=types.GenerateContentConfig(
-                max_output_tokens=8192 if max_chunk_size < 8192 else max_chunk_size,
-                top_k=50,
+                max_output_tokens=65535,
+                top_k=40,
                 top_p=0.85,
                 temperature=1.8,
             ),
@@ -436,10 +436,17 @@ def translate_chunk_with_html(html_fragment, chapter_index, chunk_index, languag
         config=types.GenerateContentConfig(
             top_p=0.8,
             temperature=1.8,
-            max_output_tokens=8192 if max_chunk_size < 8192 else max_chunk_size,
+            max_output_tokens=65535,
         ),
     )
-    output = response.text.strip()
+    # response.text가 None인 경우를 확인하고 로깅
+    if response.text is None:
+        logger.error(
+            f"[CH{chapter_index}][CHUNK{chunk_index}] API 응답 텍스트가 None입니다. "
+            f"전체 응답 객체: {response}"
+        )
+        raise ValueError("API response text is None, triggering retry.") # 재시도를 유발하기 위해 예외 발생
+    output = response.text.strip() 
     output = clean_gemini_response(output)
     output = restore_repeat_tags_translated(output)
 
@@ -487,16 +494,16 @@ def annotate_image(img_bytes, language):
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model=llm_model,
                 contents=[
                     prompt,
                     PIL.Image.open(io.BytesIO(img_bytes))
                 ],
                 config=types.GenerateContentConfig(
-                top_k= 50,
+                top_k= 40,
                 top_p= 0.85,
                 temperature= 0.8,
-                max_output_tokens=8192 if max_chunk_size < 8192 else max_chunk_size,
+                max_output_tokens=65535,
                 frequency_penalty=0.5,
                 ),
             )
