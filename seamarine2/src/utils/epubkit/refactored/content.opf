@@ -1,0 +1,126 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ns0:package xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="http://www.idpf.org/2007/opf" version="2.0" unique-identifier="uuid_id">
+  <ns0:metadata>
+    <dc:language>ja</dc:language>
+    <dc:title>異種族レビュアーズ えくすたしー・でいず</dc:title>
+    <ns0:meta name="calibre:title_sort" content="異種族レビュアーズ えくすたしー・でいず" />
+    <dc:creator ns0:file-as="葉原鉄" ns0:role="aut">葉原鉄</dc:creator>
+    <dc:contributor ns0:role="bkp">calibre (8.0.1) [https://calibre-ebook.com]</dc:contributor>
+    <dc:publisher>株式会社ＫＡＤＯＫＡＷＡ</dc:publisher>
+    <dc:identifier ns0:scheme="MOBI-ASIN">B07L4C6RZ3</dc:identifier>
+    <dc:identifier id="uuid_id" ns0:scheme="uuid">4a8706f6-ecaf-4f87-be65-187a6c79c3c9</dc:identifier>
+    <dc:identifier ns0:scheme="calibre">4a8706f6-ecaf-4f87-be65-187a6c79c3c9</dc:identifier>
+    <dc:date>2018-12-07T05:00:00+00:00</dc:date>
+    <ns0:meta name="calibre:timestamp" content="2025-03-29T09:57:50.685176+00:00" />
+    <ns0:meta name="cover" content="cover" />
+    <ns0:meta name="primary-writing-mode" content="vertical-rl" />
+  </ns0:metadata>
+  <ns0:manifest>
+    <ns0:item id="cover" href="cover1.jpeg" media-type="image/jpeg" />
+    <ns0:item id="titlepage" href="titlepage.xhtml" media-type="application/xhtml+xml" />
+    <ns0:item id="id45" href="text/part0000.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id46" href="text/part0001.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id47" href="text/part0002.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id48" href="text/part0003.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id49" href="text/part0004.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id50" href="text/part0005.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id51" href="text/part0006.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id52" href="text/part0007.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id53" href="text/part0008.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id54" href="text/part0009.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id55" href="text/part0010.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id56" href="text/part0011.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id57" href="text/part0012.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id58" href="text/part0013.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id59" href="text/part0014.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id60" href="text/part0015.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id61" href="text/part0016.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id62" href="text/part0017.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id63" href="text/part0018.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id64" href="text/part0019.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id65" href="text/part0020.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id66" href="text/part0021.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id67" href="text/part0022.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id68" href="text/part0023.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id69" href="text/part0024.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id70" href="text/part0025.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id71" href="text/part0026.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id72" href="text/part0027.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id73" href="text/part0028.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id74" href="text/part0029.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id75" href="text/part0030.html" media-type="application/xhtml+xml" />
+    <ns0:item id="id1" href="images/00001.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id2" href="images/00002.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id3" href="images/00003.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id4" href="images/00004.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id5" href="images/00005.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id6" href="images/00006.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id7" href="images/00007.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id8" href="images/00008.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id9" href="images/00009.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id10" href="images/00010.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id11" href="images/00011.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id12" href="images/00012.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id13" href="images/00013.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id14" href="images/00014.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id15" href="images/00015.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id16" href="images/00016.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id17" href="images/00017.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id18" href="images/00018.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id19" href="images/00019.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id20" href="images/00020.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id21" href="images/00021.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id22" href="images/00022.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id23" href="images/00023.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id24" href="images/00024.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id25" href="images/00025.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id26" href="images/00026.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id27" href="images/00027.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id28" href="images/00028.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id29" href="images/00029.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id30" href="images/00030.jpeg" media-type="image/jpeg" />
+    <ns0:item id="id31" href="images/00031.jpeg" media-type="image/jpeg" />
+    <ns0:item id="page_css" href="page_styles.css" media-type="text/css" />
+    <ns0:item id="css" href="stylesheet.css" media-type="text/css" />
+    <ns0:item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml" />
+  </ns0:manifest>
+  <ns0:spine toc="ncx" page-progression-direction="rtl">
+    <ns0:itemref idref="titlepage" />
+    <ns0:itemref idref="id45" />
+    <ns0:itemref idref="id46" />
+    <ns0:itemref idref="id47" />
+    <ns0:itemref idref="id48" />
+    <ns0:itemref idref="id49" />
+    <ns0:itemref idref="id50" />
+    <ns0:itemref idref="id51" />
+    <ns0:itemref idref="id52" />
+    <ns0:itemref idref="id53" />
+    <ns0:itemref idref="id54" />
+    <ns0:itemref idref="id55" />
+    <ns0:itemref idref="id56" />
+    <ns0:itemref idref="id57" />
+    <ns0:itemref idref="id58" />
+    <ns0:itemref idref="id59" />
+    <ns0:itemref idref="id60" />
+    <ns0:itemref idref="id61" />
+    <ns0:itemref idref="id62" />
+    <ns0:itemref idref="id63" />
+    <ns0:itemref idref="id64" />
+    <ns0:itemref idref="id65" />
+    <ns0:itemref idref="id66" />
+    <ns0:itemref idref="id67" />
+    <ns0:itemref idref="id68" />
+    <ns0:itemref idref="id69" />
+    <ns0:itemref idref="id70" />
+    <ns0:itemref idref="id71" />
+    <ns0:itemref idref="id72" />
+    <ns0:itemref idref="id73" />
+    <ns0:itemref idref="id74" />
+    <ns0:itemref idref="id75" />
+  </ns0:spine>
+  <ns0:guide>
+    <ns0:reference type="text" href="text/part0000.html#0-3b1d2365a4904791af362d0d45d90513" title="本編" />
+    <ns0:reference type="toc" href="text/part0008.html#7K4G0-3b1d2365a4904791af362d0d45d90513" title="目次" />
+    <ns0:reference type="cover" href="titlepage.xhtml" title="Cover" />
+  </ns0:guide>
+</ns0:package>

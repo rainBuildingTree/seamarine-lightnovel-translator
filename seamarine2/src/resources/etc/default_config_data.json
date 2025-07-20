@@ -1,0 +1,51 @@
+{
+    "gemini_api_key": "",
+    "translate_pipeline": [
+        "ruby removal", 
+        "main translation", 
+        "review"
+    ],
+    "max_chunk_size": 4096,
+    "max_concurrent_request": 1,
+    "request_delay": 0,
+    "pn_extract_model_config": {
+        "name": "gemini-2.5-flash-preview-05-20",
+        "system_prompt": "",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "frequency_penalty": 0.0,
+        "thinking_budget": 0
+    },
+    "main_translate_model_config": {
+        "name": "gemini-2.5-flash-preview-05-20",
+        "system_prompt": "",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "frequency_penalty": 0.0,
+        "thinking_budget": 0
+    },
+    "toc_translate_model_config": {
+        "name": "gemini-2.5-flash-preview-05-20",
+        "system_prompt": "",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "frequency_penalty": 0.0,
+        "thinking_budget": 0
+    },
+    "review_model_config": {
+        "name": "gemini-2.5-flash-preview-05-20",
+        "system_prompt": "",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "frequency_penalty": 0.0,
+        "thinking_budget": 0
+    },
+    "image_translate_model_config": {
+        "name": "gemini-2.5-flash-preview-05-20",
+        "system_prompt": "",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "frequency_penalty": 0.0,
+        "thinking_budget": 0
+    }
+}
