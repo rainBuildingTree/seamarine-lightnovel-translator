@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls.Fusion
 import QtQuick.Shapes
 
 pragma ComponentBehavior: Bound

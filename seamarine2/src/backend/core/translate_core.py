@@ -171,11 +171,13 @@ class TranslateCore:
         merged_dict.update(subdict_1)
         merged_dict.update(subdict_2)
 
-        return str(merged_dict)
+        return json.dumps(merged_dict)
     
     def _divide_and_conquer(self, contents: str) -> str:
         subcontents_1 = contents[0:len(contents)//2]
         subcontents_2 = contents[len(contents)//2:len(contents)]
+
+
 
         
 

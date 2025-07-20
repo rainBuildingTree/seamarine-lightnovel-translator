@@ -24,6 +24,8 @@ class StartViewModel(QObject):
     
     @Slot()
     def run_next_button_action(self):
+        if self.is_processing:
+            return
         try:
             if self._config_data.gemini_api_key == '':
                 self._app_controller.popLeftCurrentPage.emit()

@@ -5,6 +5,7 @@ import QtQuick
 import QtQml
 import QtQuick.Window
 import QtQuick.Controls
+import QtQuick.Controls.Fusion
 import QtQuick.Layouts
 import QtQuick.Dialogs
 

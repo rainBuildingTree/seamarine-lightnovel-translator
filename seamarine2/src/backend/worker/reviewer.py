@@ -159,13 +159,13 @@ Before you finalize your response, double-check that the entire output is a sing
                     self.progress.emit(int(completed / len(text_dict_chunks) * 95 * 1 / 5) + int(20 * (trial-1) / 5))
                     translated_text_dict = dict(sorted(translated_text_dict.items()))
                     ## Save Middle Translated Lines ##
-                    with open(os.path.join(translated_dir, "review_text_dict.json"), "w") as f:
+                    with open(os.path.join(translated_dir, "review_text_dict.json"), "w", encoding='utf-8') as f:
                         json.dump(translated_text_dict, f)
             
             translated_text_dict = dict(sorted(translated_text_dict.items()))
 
             ## Save Final Translated Lines ##
-            with open(os.path.join(translated_dir, "text_dict.json"), "w") as f:
+            with open(os.path.join(translated_dir, "text_dict.json"), "w", encoding='utf-8') as f:
                 json.dump(translated_text_dict, f, ensure_ascii=False)
             
             ## Update Epub Contents ##

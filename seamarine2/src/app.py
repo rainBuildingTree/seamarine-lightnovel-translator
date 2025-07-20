@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
+from PySide6.QtQuickControls2 import QQuickStyle
 import sys
 from backend.controller.app_controller import AppController
 from utils.config import load_config

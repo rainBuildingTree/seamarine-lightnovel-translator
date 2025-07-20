@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Fusion
 import QtQuick.Layouts
 import QtQml
 
@@ -132,7 +133,7 @@ Page {
                         Layout.preferredHeight: 36
                         Layout.alignment: Qt.AlignVCenter
                         font.family: root.pageFont.family
-                        font.pixelSize: 10
+                        font.pixelSize: 12
                         leftPadding: 10
                         rightPadding: 10
                         placeholderText: qsTr("원어")
@@ -167,7 +168,7 @@ Page {
                         Layout.preferredHeight: 36
                         Layout.alignment: Qt.AlignVCenter
                         font.family: root.pageFont.family
-                        font.pixelSize: 10
+                        font.pixelSize: 12
                         leftPadding: 10
                         rightPadding: 2
                         placeholderText: qsTr("번역")

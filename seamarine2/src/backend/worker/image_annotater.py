@@ -73,9 +73,6 @@ class ImageAnnotater(QThread):
                 soup = BeautifulSoup(html_content, 'lxml-xml')
                 # <img> 태그와 <svg> 내의 image 태그 모두 검색
                 all_images = soup.find_all('img') + soup.select('svg image')
-                print(chap)
-                print(all_images)
-                continue
                 for img in all_images:
                     src = (img.get("src") or img.get("xlink:href") or img.get("href") or
                            img.get("{http://www.w3.org/1999/xlink}href"))

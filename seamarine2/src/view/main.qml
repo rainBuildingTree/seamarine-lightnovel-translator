@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Fusion
 import QtQuick.Window
 import "utils" as MyUtils
 
@@ -18,7 +19,7 @@ ApplicationWindow {
     minimumWidth: width
     visible: true
 
-    flags: Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint
+    //flags: Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint
 
     MyUtils.ImageLoader {
         id: imageLoader

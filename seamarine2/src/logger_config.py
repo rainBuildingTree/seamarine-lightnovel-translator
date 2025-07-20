@@ -8,7 +8,6 @@ def _get_log_file_path():
 def _get_translate_log_file_path():
     documents_folder = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
     return os.path.join(documents_folder, "SeaMarine_AI_Translate_Tool/translate.log")
-
 def setup_logger(name: str = "seamarine") -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
@@ -19,7 +18,7 @@ def setup_logger(name: str = "seamarine") -> logging.Logger:
 
         log_file_path = _get_log_file_path()
         os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
-        fh = logging.FileHandler(log_file_path)
+        fh = logging.FileHandler(log_file_path, encoding='utf-8')
         fh.setLevel(logging.DEBUG)
 
         formatter = logging.Formatter(
@@ -43,7 +42,7 @@ def setup_translate_logger(target: list[str], name: str = "seamarine_translate")
 
         log_file_path = _get_translate_log_file_path()
         os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
-        fh = logging.FileHandler(log_file_path)
+        fh = logging.FileHandler(log_file_path, encoding='utf-8')
         fh.setLevel(logging.DEBUG)
 
         lh = ListAccumulatorHandler(target)

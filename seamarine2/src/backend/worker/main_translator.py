@@ -132,7 +132,7 @@ Before you finalize your response, double-check that the entire output is a sing
         translated_dir = os.path.join(working_dir, "translated")
         os.makedirs(translated_dir, exist_ok=True)
         os.makedirs(original_dir, exist_ok=True)
-        with open(os.path.join(original_dir, "text_dict.json"), "w") as f:
+        with open(os.path.join(original_dir, "text_dict.json"), "w", encoding='utf-8') as f:
             json.dump(text_dict, f, ensure_ascii=False)
         self._logger.info(f"[MainTranslator._execute]: Saved Extraction")
 
@@ -172,13 +172,13 @@ Before you finalize your response, double-check that the entire output is a sing
                 self.progress.emit(int(completed / len(text_dict_chunks) * 85) if attempt == 1 else 85 + int(completed / len(text_dict_chunks) * 10))
                 translated_text_dict = dict(sorted(translated_text_dict.items()))
                 ## Save Middle Translated Lines ##
-                with open(os.path.join(translated_dir, "text_dict.json"), "w") as f:
+                with open(os.path.join(translated_dir, "text_dict.json"), "w", encoding='utf-8') as f:
                     json.dump(translated_text_dict, f)
         
         translated_text_dict = dict(sorted(translated_text_dict.items()))
 
         ## Save Final Translated Lines ##
-        with open(os.path.join(translated_dir, "text_dict.json"), "w") as f:
+        with open(os.path.join(translated_dir, "text_dict.json"), "w", encoding='utf-8') as f:
             json.dump(translated_text_dict, f, ensure_ascii=False)
         
         ## Update Epub Contents ##
@@ -203,7 +203,7 @@ Before you finalize your response, double-check that the entire output is a sing
         for i in range(3):
             try:
                 self._logger.info(f"Chunk{chunk_index} Translation (Try {i+1})")
-                resp = self._core.generate_content(llm_contents)
+                resp = self._core.generate_content(llm_contents, resp_in_json=True)
                 translated_text_dict: dict = json.loads(resp)
                 if translated_text_dict.keys() != chunk.keys():
                     self._logger.info(f"Failed To Parse Translated Response Of Chunk{chunk_index} (Try {i+1})\n")

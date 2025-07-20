@@ -116,13 +116,13 @@ Before you finalize your response, double-check that the entire output is a sing
         translated_dir = os.path.join(working_dir, "translated")
         os.makedirs(translated_dir, exist_ok=True)
         os.makedirs(original_dir, exist_ok=True)
-        with open(os.path.join(original_dir, "toc_text_dict.json"), "w") as f:
+        with open(os.path.join(original_dir, "toc_text_dict.json"), "w", encoding='utf-8') as f:
             json.dump(text_dict, f)
         self._logger.info(f"[TocTranslator._execute]: Saved Extraction")
 
         ## Load Prework ##
         if os.path.exists(os.path.join(translated_dir, "toc_text_dict.json")):
-            with open(os.path.join(translated_dir, "toc_text_dict.json"), "r") as f:
+            with open(os.path.join(translated_dir, "toc_text_dict.json"), "r", encoding='utf-8') as f:
                 translated_text_dict = json.load(f)
         else:
             translated_text_dict = {}
@@ -155,7 +155,7 @@ Before you finalize your response, double-check that the entire output is a sing
                 self.progress.emit(int(completed / len(text_dict_chunks) * 95))
                 translated_text_dict = dict(sorted(translated_text_dict.items()))
                 ## Save Middle Translated Lines ##
-                with open(os.path.join(translated_dir, "toc_text_dict.json"), "w") as f:
+                with open(os.path.join(translated_dir, "toc_text_dict.json"), "w", encoding='utf-8') as f:
                     json.dump(translated_text_dict, f)
         
         translated_text_dict = dict(sorted(translated_text_dict.items()))
@@ -174,7 +174,7 @@ Before you finalize your response, double-check that the entire output is a sing
         self.completed.emit(save_path)
 
         ## Save Final Translated Lines ##
-        with open(os.path.join(translated_dir, "toc_text_dict.json"), "w") as f:
+        with open(os.path.join(translated_dir, "toc_text_dict.json"), "w", encoding='utf-8') as f:
             json.dump(translated_text_dict, f)
 
     def _translate_text_dict_chunk(self, chunk: dict[int, str], chunk_index: int):

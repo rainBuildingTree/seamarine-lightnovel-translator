@@ -4,6 +4,7 @@ import QtCore
 import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
+import QtQuick.Controls.Fusion
 import QtQuick.Layouts
 import QtQuick.Dialogs
 

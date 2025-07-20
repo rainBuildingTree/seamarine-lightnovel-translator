@@ -147,7 +147,7 @@ Core Principle: Translate faithfully without summarization or addition. Ensure n
         "use_thinking_budget": True
     },
     "review_model_config": {
-        "name": "gemini-2.5-flash-lite-preview-06-17",
+        "name": "gemini-2.5-flash",
         "system_prompt": \
 """
 
@@ -228,7 +228,7 @@ def _get_config_path():
 def load_config():
     settings_path = _get_config_path()
     if os.path.exists(settings_path):
-        with open(settings_path, "r") as f:
+        with open(settings_path, "r", encoding='utf-8') as f:
             return json.load(f)
     save_config(_default_config_data)
     return _default_config_data
@@ -236,7 +236,7 @@ def load_config():
 def save_config(data):
     settings_path = _get_config_path()
     os.makedirs(os.path.dirname(settings_path), exist_ok=True)
-    with open(settings_path, "w") as f:
+    with open(settings_path, "w", encoding='utf-8') as f:
         json.dump(data, f)
 
 def get_default_config():
