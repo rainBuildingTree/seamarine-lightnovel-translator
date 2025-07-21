@@ -132,11 +132,18 @@ class RubyRemover(QThread):
         for ruby in soup.find_all('ruby'):
             rts = ruby.find_all('rt')
             if rts:
-                text = ""
-                for rt in rts:
-                    text += rt.get_text()
+                text = "".join(rt.get_text() for rt in rts)
                 ruby.replace_with(text)
+                continue
+            
+            rbs = ruby.find_all('rb')
+            if rbs:
+                text = "".join(rb.get_text() for rb in rbs)
+                ruby.replace_with(text)
+                continue
+
             else:
-                ruby.decompose()
+                text = ruby.get_text()
+                ruby.replace_with(text)
 
         return str(soup)
