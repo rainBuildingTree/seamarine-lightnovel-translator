@@ -97,7 +97,7 @@ Core Principle: Translate faithfully without summarization or addition. Ensure n
         "temperature": 2.0,
         "top_p": 0.95,
         "frequency_penalty": 0.0,
-        "thinking_budget": 0,
+        "thinking_budget": 1024,
         "use_thinking_budget": True
     },
     "toc_translate_model_config": {
@@ -143,7 +143,7 @@ Core Principle: Translate faithfully without summarization or addition. Ensure n
         "temperature": 2.0,
         "top_p": 0.95,
         "frequency_penalty": 0.0,
-        "thinking_budget": 0,
+        "thinking_budget": 1024,
         "use_thinking_budget": True
     },
     "review_model_config": {
@@ -194,7 +194,7 @@ Core Principle: Translate faithfully without summarization or addition. Ensure n
         "temperature": 2.0,
         "top_p": 0.95,
         "frequency_penalty": 0.0,
-        "thinking_budget": 0,
+        "thinking_budget": 1024,
         "use_thinking_budget": True
     },
     "image_translate_model_config": {

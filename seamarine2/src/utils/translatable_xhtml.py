@@ -133,4 +133,4 @@ class TranslatableXHTML:
                 if translated_text is not None:
                     text_node.replace_with(NavigableString(translated_text))
 
-        return temp_soup.prettify(formatter='minimal')
+        return str(temp_soup)

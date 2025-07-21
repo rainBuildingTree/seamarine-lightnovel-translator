@@ -65,6 +65,8 @@ class MainTranslator(QThread):
         except Exception:
             self._logger.exception(f"[MainTranslator._execute]: Failed To Load {self._file_path}")
             raise
+
+        self._logger.info(f"Loaded OPF:\n{book._contents[book._opf_path].decode('utf-8')}")
         
         ## Set TranslateCore ##
         ai_model_data = copy.deepcopy(self._model_data)
@@ -84,6 +86,8 @@ The JSON object must map unique identifiers to their translated text.
 To prevent errors, all string values inside the JSON MUST be correctly escaped.
 
 1. Preserve every punctuation mark exactly as in the input (。,！、？：・…「」『』（） etc.)
+
+1. Preserve every <repeat> tag and its contents
 
 1.  **Double Quotes (")**: Must be escaped with a backslash.
     - **BAD:** "She said "Hi!""

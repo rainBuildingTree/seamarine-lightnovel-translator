@@ -130,9 +130,12 @@ class RubyRemover(QThread):
         soup = BeautifulSoup(html_content, "lxml-xml")
         
         for ruby in soup.find_all('ruby'):
-            rt = ruby.find('rt')
-            if rt:
-                ruby.replace_with(rt.get_text())
+            rts = ruby.find_all('rt')
+            if rts:
+                text = ""
+                for rt in rts:
+                    text += rt.get_text()
+                ruby.replace_with(text)
             else:
                 ruby.decompose()
 
