@@ -152,7 +152,7 @@ Before you finalize your response, double-check that the entire output is a sing
         self._logger.info(f"Found {len(untranslated_text_dict)} Lines To Translate")
 
         ## Chunking ##
-        text_dict_chunks = utils.chunk_text_dict(untranslated_text_dict, self._max_chunk_size)
+        text_dict_chunks = utils.chunk_text_dict(untranslated_text_dict, self._max_chunk_size // (2 ** (attempt-1)))
 
         ## Chunk Translation (Thread Registration) ##
         translated_dir = os.path.join(working_dir, "translated")
@@ -211,6 +211,7 @@ Before you finalize your response, double-check that the entire output is a sing
                 translated_text_dict: dict = json.loads(resp)
                 if translated_text_dict.keys() != chunk.keys():
                     self._logger.info(f"Failed To Parse Translated Response Of Chunk{chunk_index} (Try {i+1})\n")
+                    self._logger.info(f"##### ORIGINAL #####\n\n{str(llm_contents)}\n\n##### RESPONSE #####\n\n{str(resp)}\n")
                     if i == 2:
                         self._logger.warning(f"Final Failiure In Chunk{chunk_index} Translation")
                         is_suceed = False

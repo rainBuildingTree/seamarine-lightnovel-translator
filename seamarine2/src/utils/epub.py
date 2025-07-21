@@ -386,7 +386,10 @@ class Epub:
             # body 태그가 없으면 fallback: 전체 번역본을 반환
             return translated_html
         
-        original_p_tags = original_body.find_all('p')
+        original_p_tags = [
+            p for p in original_body.find_all('p') 
+            if p.get('title') != "SeaMarine Annotation"
+        ]
         translated_p_tags = translated_body.find_all('p')
         
         # <p> 태그가 하나도 없거나 개수가 다르면 fallback 처리

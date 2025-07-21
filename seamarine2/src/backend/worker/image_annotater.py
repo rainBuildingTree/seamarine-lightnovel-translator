@@ -86,15 +86,19 @@ class ImageAnnotater(QThread):
                         image_bytes = book._contents[image_path]
                         annotation = self._core.generate_content(Image.open(io.BytesIO(image_bytes)))
                         new_p = soup.new_tag("p")
+                        new_p["title"] = "SeaMarine Annotation"
                         new_p.append('[[이미지 텍스트:')
                         for line in annotation.strip().split('\n'):
                             new_p.append(soup.new_tag("br"))
                             new_p.append(line)
                         new_p.append(']]')
-                        img.insert_after(new_p)
+                        if img.parent and img.parent.name == 'svg':
+                            img.parent.insert_after(new_p)
+                        else:
+                            img.insert_after(new_p)
                     else:
                         self._logger.warning(f"Image not found in EPUB: {image_path}")
-                book._contents[chap] = soup.prettify(formatter="minimal").encode('utf-8')
+                book._contents[chap] = str(soup).encode('utf-8')
                 self.progress.emit(int((idx+1) / len(chapter_files) * 95))
             except Exception as e:
                 self._logger.exception(f"Failed to process {chap}: {e}")
