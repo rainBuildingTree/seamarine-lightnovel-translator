@@ -3,7 +3,7 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
 import sys
 from backend.controller.app_controller import AppController
-from utils.config import load_config
+from utils.config import load_config, CURRENT_VERSION
 from logger_config import setup_logger, setup_translate_logger
 from backend.model import *
 from backend.viewmodel import *
@@ -19,8 +19,11 @@ if __name__ == "__main__":
     _config_data = ConfigData()
     _runtime_data = RuntimeData()
     
-    print(load_config())
+
     _config_data.load(load_config())
+    logger.info(f"Version Detected: {_config_data.version}")
+    if _config_data.version != CURRENT_VERSION:
+        _config_data.load(load_config(reset=True))
     _runtime_data.save_directory = paths.get_save_directory()
 
     translate_logger = setup_translate_logger(_runtime_data.translate_log)

@@ -2,13 +2,19 @@ import os
 import json
 from PySide6.QtCore import QStandardPaths
 
+CURRENT_VERSION = "2.0.0"
+
 _default_config_data: dict = {
+    "current_version": CURRENT_VERSION,
     "gemini_api_key": "",
     "translate_pipeline": [
         "ruby removal", 
+        "pn extract",
+        "pn dict edit",
         "main translation", 
         "toc translation",
-        "review"
+        "review",
+        "image translation"
     ],
     "max_chunk_size": 4096,
     "max_concurrent_request": 3,
@@ -18,15 +24,16 @@ _default_config_data: dict = {
         "system_prompt": \
 """
 # Role and Goal
-You are a highly specialized linguistic processor. Your sole function is to receive a text, identify all unique proper nouns (including personal names, nicknames, locations, organizations, etc.), and provide their standard Korean translations.
+You are a highly specialized linguistic processor. Your sole function is to receive a text, identify all unique proper nouns those are mentioned more than twice (including personal names, nicknames, locations, organizations, etc.), and provide their standard Korean translations.
 
 # Core Instructions
 1. Analyze the user‑provided text to identify all proper nouns.
-2. When identifying proper nouns, strip any non‑essential suffixes so that only the base name remains:
+1. When identifying proper nouns, strip any non‑essential suffixes so that only the base name remains:
    - **Honorifics:** 様, 氏, さん, ちゃん, くん, 君, 先生, etc.
-   - **Generic titles or classifiers:** 帝国, 王国, 教授, 伯爵, 公爵, 公, 家, 党, 社, 公司, 등 
-3. For each unique base proper noun, find its most common and standard Korean transliteration or translation.
-4. Consolidate all findings into a single JSON object.
+   - **Generic titles or classifiers:** 帝国, 王国, 教授, 伯爵, 公爵, 公, 家, 党, 社, 公司, etc
+1. Only indentify proper nouns those are mentioned more than twice
+1. For each unique base proper noun, find its most common and standard Korean transliteration or translation.
+1. Consolidate all findings into a single JSON object.
 
 # Strict Output Format
 - Your response **MUST** be a single, valid JSON object and nothing else.
@@ -97,7 +104,7 @@ Core Principle: Translate faithfully without summarization or addition. Ensure n
         "temperature": 2.0,
         "top_p": 0.95,
         "frequency_penalty": 0.0,
-        "thinking_budget": 1024,
+        "thinking_budget": -1,
         "use_thinking_budget": True
     },
     "toc_translate_model_config": {
@@ -143,7 +150,7 @@ Core Principle: Translate faithfully without summarization or addition. Ensure n
         "temperature": 2.0,
         "top_p": 0.95,
         "frequency_penalty": 0.0,
-        "thinking_budget": 1024,
+        "thinking_budget": -1,
         "use_thinking_budget": True
     },
     "review_model_config": {
@@ -194,11 +201,11 @@ Core Principle: Translate faithfully without summarization or addition. Ensure n
         "temperature": 2.0,
         "top_p": 0.95,
         "frequency_penalty": 0.0,
-        "thinking_budget": 1024,
+        "thinking_budget": -1,
         "use_thinking_budget": True
     },
     "image_translate_model_config": {
-        "name": "gemini-2.5-flash",
+        "name": "gemini-2.0-flash",
         "system_prompt": \
 """
 You are an OCR-capable translation assistant. Your sole job is to detect every piece of readable text in the provided image and translate it into natural, fluent Korean.
@@ -217,7 +224,7 @@ This version makes each step unambiguous and emphasizes the “no extras” rule
         "top_p": 0.95,
         "frequency_penalty": 0.0,
         "thinking_budget": -1,
-        "use_thinking_budget": True
+        "use_thinking_budget": False
     }
 }
 
@@ -225,7 +232,10 @@ def _get_config_path():
     documents_folder = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
     return os.path.join(documents_folder, "SeaMarine_AI_Translate_Tool/config_data.json")
 
-def load_config():
+def load_config(reset = False):
+    if reset:
+        save_config(_default_config_data)
+        return _default_config_data
     settings_path = _get_config_path()
     if os.path.exists(settings_path):
         with open(settings_path, "r", encoding='utf-8') as f:
