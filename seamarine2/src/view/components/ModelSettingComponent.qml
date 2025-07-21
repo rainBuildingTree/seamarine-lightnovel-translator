@@ -55,6 +55,7 @@ RowLayout {
         Layout.alignment: Qt.AlignHCenter
 
         font.pixelSize: 12
+        color: colorLoader.shimarin_dark
         leftPadding: 10
         rightPadding: 10
         placeholderText: root.placeholderText
@@ -70,7 +71,7 @@ RowLayout {
         }
 
         onAcceptableInputChanged:
-            color = acceptableInput ? "black" : "red";
+            color = acceptableInput ? colorLoader.shimarin_dark : "red";
         onTextEdited: {
             root.fieldText = textField.text
             textField.text = root.fieldText

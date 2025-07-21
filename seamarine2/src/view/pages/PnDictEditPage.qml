@@ -134,6 +134,7 @@ Page {
                         Layout.alignment: Qt.AlignVCenter
                         font.family: root.pageFont.family
                         font.pixelSize: 12
+                        color: colorLoader.shimarin_dark
                         leftPadding: 10
                         rightPadding: 10
                         placeholderText: qsTr("원어")
@@ -169,6 +170,7 @@ Page {
                         Layout.alignment: Qt.AlignVCenter
                         font.family: root.pageFont.family
                         font.pixelSize: 12
+                        color: colorLoader.shimarin_dark
                         leftPadding: 10
                         rightPadding: 2
                         placeholderText: qsTr("번역")

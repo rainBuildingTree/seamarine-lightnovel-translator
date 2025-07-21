@@ -290,6 +290,7 @@ Page {
                 font.family: root.pageFont.family
                 font.pixelSize: 12
                 color: (advancedModeViewModel.file.length === 0) ? "grey" : colorLoader.shimarin_dark
+                elide: ElideMiddle
 
                 visible: selectedFileNameTextField.text.length === 0
             }

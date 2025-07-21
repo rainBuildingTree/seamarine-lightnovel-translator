@@ -169,6 +169,7 @@ Page {
                 font.family: root.pageFont.family
                 font.pixelSize: 12
                 color: (homeViewModel.file.length === 0) ? "grey" : colorLoader.shimarin_dark
+                elide: Text.ElideMiddle
             }
         }
 

@@ -155,6 +155,17 @@ Page {
                 font.family: root.pageFont.family
                 font.pixelSize: 12
                 currentIndex: translateSettingViewModel.llmModelIndex
+
+                contentItem: Text {
+                    text: myComboBox.displayText
+                    font: myComboBox.font
+                    color: colorLoader.shimarin_dark
+                    verticalAlignment: Text.AlignVCenter
+                    leftPadding: 4
+                    rightPadding: 4
+                    elide: Text.ElideRight
+                }
+            
                 background: Rectangle {
                     implicitHeight: 28
                     implicitWidth: myComboBox.width
@@ -278,6 +289,7 @@ Page {
                 text: translateSettingViewModel.sysPrompt
                 font.family: root.pageFont.family
                 font.pixelSize: 12
+                color: colorLoader.shimarin_dark
                 background: Rectangle { color: "white"; radius: 10; border.color: colorLoader.shimarin_dark; border.width: 2; }
                 onTextEdited: translateSettingViewModel.sysPrompt = text
             }
@@ -427,6 +439,7 @@ Page {
                 Layout.preferredHeight: 32
                 Layout.alignment: Qt.AlignHCenter
                 font.pixelSize: 12
+                color: colorLoader.shimarin_dark
                 leftPadding: 10
                 rightPadding: 10
                 placeholderText: "-1-24576"
@@ -440,7 +453,7 @@ Page {
                 }
 
                 onAcceptableInputChanged:
-                    color = acceptableInput ? "black" : "red";
+                    color = acceptableInput ? colorLoader.shimarin_dark : "red";
                 
                 text: translateSettingViewModel.thinkingBudget
                 onTextEdited: translateSettingViewModel.thinkingBudget = text

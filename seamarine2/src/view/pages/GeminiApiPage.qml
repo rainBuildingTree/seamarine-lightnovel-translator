@@ -100,6 +100,7 @@ Page {
             Layout.preferredHeight: 32
             Layout.alignment: Qt.AlignHCenter
             font.pixelSize: 12
+            color: colorLoader.shimarin_dark
             leftPadding: 10
             rightPadding: 10
 
