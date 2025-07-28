@@ -154,15 +154,13 @@ class Epub:
             properties = item.attrib.get("properties", "")
             path = posixpath.join(self._opf_dir, item.attrib.get("href", ""))
             if "nav" in properties:
-                continue
+                self._toc_path = path
             elif "html" in media_type:
                 self._chapter_files.append(path)
             elif media_type.startswith("image"):
                 self._image_files.append(path)
             elif "css" in media_type:
                 self._style_files.append(path)
-            elif 'properties' in item.attrib and 'nav' in item.attrib['properties']:
-                self._toc_path = path
             elif self._toc_id != None and item.attrib.get("id") == self._toc_id:
                 self._toc_path = path
         
