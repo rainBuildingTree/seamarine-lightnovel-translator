@@ -1,4 +1,4 @@
-from PySide6.QtCore import QObject, Slot
+from PySide6.QtCore import QObject, Slot, Signal, Property
 from backend.controller.app_controller import AppController
 from logger_config import setup_logger
 
@@ -14,6 +14,11 @@ class AboutViewModel(QObject):
         except Exception as e:
             self.logger.error(str(self) + str(e))
     
+    versionChanged = Signal()
+    @Property(str, notify=versionChanged)
+    def version(self):
+        return self.config_data.version
+
     @Slot()
     def open_guide_link(self):
         pass
@@ -24,4 +29,4 @@ class AboutViewModel(QObject):
             self.app_controller.popCurrentPage.emit()
             self.logger.info(str(self) + ".close")
         except Exception as e:
-            self.logger.error(str(self) + str(e))            
+            self.logger.error(str(self) + str(e))

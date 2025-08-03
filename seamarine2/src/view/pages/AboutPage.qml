@@ -121,7 +121,7 @@ Page {
             Layout.margins: 10
 
             lineHeight: 1.1
-            text: qsTr("버전: 2.0.0")
+            text: qsTr("버전: ") + aboutViewModel.version
             font.family: root.pageFont.family
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
