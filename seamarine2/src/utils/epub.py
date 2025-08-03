@@ -358,7 +358,9 @@ class Epub:
     def apply_dual_language(self):
         for chapter_file in self._chapter_files:
             bn, ext = posixpath.splitext(posixpath.basename(chapter_file))
-            original_path = posixpath.join("seamarine_originals", f"{bn}_original{ext}")
+            original_path = posixpath.join("seamarine_originals_with_ruby", f"{bn}_original{ext}") if posixpath.join("seamarine_originals_with_ruby", f"{bn}_original{ext}") in self._contents.keys() \
+                else posixpath.join("seamarine_originals", f"{bn}_original{ext}")
+            print(original_path)
             original_html = self._contents[original_path]
             translated_html = self._contents[chapter_file]
             merged_html = self._combine_dual_language(original_html, translated_html)
@@ -425,6 +427,29 @@ class Epub:
             name, ext = posixpath.splitext(original_filename)
             new_filename = f"{name}_original{ext}"
             new_path = posixpath.join('seamarine_originals', new_filename)
+            if new_path in self._contents.keys():
+                continue
+            self._original_contents[chap] = self._contents[chap]
+            self._contents[new_path] = original_html.encode('utf-8')
+
+    def cleanup_original_chapters(self):
+        chapter_files = self.get_chapter_files()
+        for chapter_file in chapter_files:
+            original_filename = posixpath.basename(chapter_file)
+            name, ext = posixpath.splitext(original_filename)
+            new_filename = f"{name}_original{ext}"
+            new_path = posixpath.join('seamarine_originals', new_filename)
+            self._contents.pop(new_path)
+
+    def keep_original_chapters(self):
+        chapter_files = self.get_chapter_files()
+        self._original_contents = {}
+        for chap in chapter_files:
+            original_html = self._contents[chap].decode('utf-8')
+            original_filename = posixpath.basename(chap)
+            name, ext = posixpath.splitext(original_filename)
+            new_filename = f"{name}_original{ext}"
+            new_path = posixpath.join('seamarine_originals_with_ruby', new_filename)
             if new_path in self._contents.keys():
                 continue
             self._original_contents[chap] = self._contents[chap]

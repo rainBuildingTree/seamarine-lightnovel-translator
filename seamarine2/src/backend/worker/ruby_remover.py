@@ -6,6 +6,7 @@ import shutil
 from bs4 import BeautifulSoup
 import logging
 import time
+from utils import Epub
 
 class RubyRemover(QThread):
     progress = Signal(int)
@@ -34,6 +35,7 @@ class RubyRemover(QThread):
         try:
             self.progress.emit(0)
             self._create_working_dir()
+            self._preserve_chapters_with_ruby()
             self._unzip_epub()
             self._remove_ruby_from_htmls()
             self._zip_up_epub()
@@ -74,6 +76,13 @@ class RubyRemover(QThread):
         except Exception as e:
             self._logger.error(str(self) + ".unzip_epub\n-> " + str(e))
             raise e
+        
+    def _preserve_chapters_with_ruby(self):
+        self._logger.info("[Ruby Remover] Preserve Chapter With Ruby Start")
+        book = Epub(self._file_path)
+        book.cleanup_original_chapters()
+        book.keep_original_chapters()
+        book.save(self._file_path)
 
     def _remove_ruby_from_htmls(self):
         start_time = time.time()
@@ -81,7 +90,7 @@ class RubyRemover(QThread):
         try:
             for root, _, files in os.walk(self._working_dir):
                 for file in files:
-                    if file.endswith((".html", ".xhtml", ".htm")):
+                    if file.endswith((".html", ".xhtml", ".htm")) and not file.endswith(("_original.html", "_original.xhtml", "_original.htm")):
                         file_path = os.path.join(root, file)
                         with open(file_path, "r", encoding="utf-8") as f:
                             content = f.read()
@@ -92,7 +101,7 @@ class RubyRemover(QThread):
             self._logger.info(str(self) + ".remove_ruby_from_htmls.time_elapsed: " + str(end_time - start_time))
             self.progress.emit(48)
         except Exception as e:
-            self._logger.error(str(self) + ".remove_ruby_from_htmls\n-> " + str(e))
+            self._logger.exception(str(self) + ".remove_ruby_from_htmls\n-> " + str(e))
             raise e
     
     def _zip_up_epub(self):
