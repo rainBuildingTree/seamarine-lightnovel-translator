@@ -7,117 +7,137 @@ from enum import IntEnum, auto
 from utils.pn_dict import save_dict
 from backend.model import RuntimeData, ConfigData
 from backend.controller import AppController
+from abc import ABC, abstractmethod, ABCMeta
 
-class PnDictEditViewModel(QObject):
+class QABCMeta(type(QObject), ABCMeta):
+    """QObject의 메타클래스와 ABCMeta를 결합한 메타클래스"""
+    pass
+
+class BaseDictEditViewModel(QObject, ABC, metaclass=QABCMeta):
+    """
+    사전(Dictionary) 편집 ViewModel의 공통 로직을 담는 추상 베이스 클래스.
+    상속받는 클래스는 _get_dict_file_path 메소드를 반드시 구현해야 합니다.
+    """
     saveSucceed = Signal()
     saveFailed = Signal()
     closePage = Signal()
+    dataChanged = Signal()
 
     def __init__(self, config_data, runtime_data, app_controller, parent=None):
         super().__init__(parent)
         self._logger = setup_logger()
         try:
+            # PnDictModel 대신 좀 더 일반적인 이름으로 변경하거나 그대로 사용해도 무방
             self._model: PnDictModel = PnDictModel()
             self._config_data: ConfigData = config_data
             self._runtime_data: RuntimeData = runtime_data
             self._app_controller: AppController = app_controller
             self.load_csv()
-            self._logger.info(str(self) + ".__init__")
+            self._logger.info(f"{self.__class__.__name__}.__init__")
         except Exception as e:
-            self._logger.error(str(self) + str(e))
+            self._logger.error(f"{self.__class__.__name__}: {e}")
+
+    @abstractmethod
+    def _get_dict_file_path(self) -> str:
+        """
+        자식 클래스에서 CSV 파일의 전체 경로를 반환하도록 구현해야 하는 추상 메소드.
+        """
+        raise NotImplementedError("Subclasses must implement _get_dict_file_path()")
 
     def load_csv(self):
+        file_path = self._get_dict_file_path()
         try:
-            with open(self._runtime_data.pn_dict_file, newline='', encoding='utf-8') as f:
+            with open(file_path, newline='', encoding='utf-8') as f:
                 self._model = PnDictModel()
                 reader = csv.reader(f)
                 for row in reader:
                     if len(row) >= 2:
                         self._model.add_term(row[0].strip(), row[1].strip())
+        except FileNotFoundError:
+            self._logger.warning(f"File not found: {file_path}. Creating a new file.")
+            try:
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                # save_dict 함수 대신 간단한 파일 생성 로직으로 대체
+                with open(file_path, 'w', newline='', encoding='utf-8') as f:
+                    pass # 빈 파일 생성
+                self._model = PnDictModel() # 모델 초기화
+            except Exception as e:
+                self._logger.error(f"Failed to create directory or file for {file_path}: {e}")
         except Exception as e:
-            self._logger.error(str(self) + str(e))
-            if not os.path.exists(self._runtime_data.pn_dict_file):
-                try:
-                    os.makedirs(os.path.dirname(self._runtime_data.pn_dict_file), exist_ok=True)
-                    save_dict(self._runtime_data.pn_dict_file, [])
-                    with open(self._runtime_data.pn_dict_file, newline='', encoding='utf-8') as f:
-                        self._model = PnDictModel()
-                        reader = csv.reader(f)
-                        for row in reader:
-                            if len(row) >= 2:
-                                self._model.add_term(row[0].strip(), row[1].strip())
-                except Exception as e:
-                    self._logger.error("Not directory non-existence error: " + str(self) + str(e))
+            self._logger.error(f"Error loading {file_path}: {e}")
+
+
+    @Slot()
+    def save_csv(self):
+        file_path = self._get_dict_file_path()
+        try:
+            data_to_save = self._model.get_all_data()
+            
+            # 원본 코드의 의도를 살려 파일 이름만 전달
+            save_dict(os.path.basename(file_path), data_to_save)
+            # 혹은 전체 경로를 사용하도록 수정할 수도 있습니다.
+            # save_dict(file_path, data_to_save)
+            
+            self._logger.info(f"Data successfully saved to {file_path}, {str(data_to_save)}")
+            self.saveSucceed.emit()
+
+        except Exception as e:
+            self._logger.error(f"Failed to save data to {file_path}: {e}")
+            self.saveFailed.emit()
+
+    # --- 아래는 변경 없이 그대로 베이스 클래스로 이동 ---
 
     @Slot()
     def lazy_init(self):
         try:
             self.load_csv()
-            self._logger.info(str(self) + ".lazy_init")
+            self._logger.info(f"{self.__class__.__name__}.lazy_init")
         except Exception as e:
-            self._logger.error(str(self) + ".lazy_init\n->" + str(e))
-            
-    @Slot()
-    def save_csv(self):
-        try:
-            data_to_save = self._model.get_all_data()
-            
-            save_dict(os.path.basename(self._runtime_data.pn_dict_file), data_to_save)
-            
-            self._logger.info(f"Data successfully saved to {self._runtime_data.pn_dict_file}, {str(data_to_save)}")
-            self.saveSucceed.emit()
-
-        except Exception as e:
-            self._logger.error(f"Failed to save data to {self._runtime_data.pn_dict_file}: {e}")
-            self.saveFailed.emit()
+            self._logger.error(f"{self.__class__.__name__}.lazy_init\n->{e}")
 
     @Slot(int, str, str)
     def update_data(self, index, role, value):
         try:
-            if role == "from":
-                role = ListElementRoles.FROM
-            elif role == "to":
-                role = ListElementRoles.TO
+            if role == "from": role_enum = ListElementRoles.FROM
+            elif role == "to": role_enum = ListElementRoles.TO
             else:
-                role = ListElementRoles.INDEX
+                role_enum = ListElementRoles.INDEX
                 value = int(value)
-            self._model.setData(index, value, role)
+            self._model.setData(index, value, role_enum)
             self.dataChanged.emit()
-            self._logger.info(str(self) + f".update_data({index}, {role}, {value})")
+            self._logger.info(f"{self.__class__.__name__}.update_data({index}, {role}, {value})")
         except Exception as e:
-            self._logger.error(str(self) + f".update_data({index}, {role}, {value})\n-> " + str(e))
-    
+            self._logger.error(f"{self.__class__.__name__}.update_data({index}, {role}, {value})\n-> {e}")
+
     @Slot(int)
     def remove_row(self, index):
         try:
-            for i in range(index+1, self._model.len()):
-                self._model.setData(i, i-1, ListElementRoles.INDEX)
+            for i in range(index + 1, self._model.len()):
+                self._model.setData(i, i - 1, ListElementRoles.INDEX)
             self._model.removeRow(index)
             self.dataChanged.emit()
-            self._logger.info(str(self) + f".remove_row({index})")
+            self._logger.info(f"{self.__class__.__name__}.remove_row({index})")
         except Exception as e:
-            self._logger.error(str(self) + f".remove_row({index})\n->" + str(e))
-    
+            self._logger.error(f"{self.__class__.__name__}.remove_row({index})\n->{e}")
+
     @Slot()
     def add_row(self):
         try:
             self._model.add_term("", "")
-            self._logger.info(str(self) + ".add_row")
+            self.dataChanged.emit() # 데이터 추가 후 dataChanged 시그널을 보내는 것이 좋습니다.
+            self._logger.info(f"{self.__class__.__name__}.add_row")
         except Exception as e:
-            self._logger.error(str(self) + ".add_row\n->" + str(e))
+            self._logger.error(f"{self.__class__.__name__}.add_row\n->{e}")
 
     @Slot()
     def close(self):
         try:
-            self.load_csv()
+            self.load_csv() # 저장하지 않은 변경사항을 되돌리는 역할
             self._app_controller.popCurrentPage.emit()
-            self._logger.info(str(self) + ".close")
+            self._logger.info(f"{self.__class__.__name__}.close")
         except Exception as e:
-            self._logger.error(str(self) + ".close" + str(e))
+            self._logger.error(f"{self.__class__.__name__}.close: {e}")
 
-
-    
-    dataChanged = Signal()
     def get_data(self):
         return self._model
     def set_data(self, value):
@@ -183,8 +203,18 @@ class PnDictModel(QAbstractListModel):
     
     def len(self):
         return len(self._data)
+    
+class PnDictEditViewModel(BaseDictEditViewModel):
+    """PN 사전을 편집하는 ViewModel"""
+    def _get_dict_file_path(self) -> str:
+        """PN 사전 파일 경로를 반환합니다."""
+        return self._runtime_data.pn_dict_file
 
-
+class UserDictEditViewModel(BaseDictEditViewModel):
+    """사용자 사전을 편집하는 ViewModel"""
+    def _get_dict_file_path(self) -> str:
+        """사용자 사전 파일 경로를 반환합니다."""
+        return self._runtime_data.user_dict_file
 
 class ListElementRoles(IntEnum):
     FROM = Qt.UserRole
