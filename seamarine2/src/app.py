@@ -39,6 +39,7 @@ if __name__ == "__main__":
     _pn_dict_edit_view_model = PnDictEditViewModel(_config_data, _runtime_data, _app_controller)
 
     _gemini_api_reset_view_model = GeminiApiResetViewModel(_config_data, _runtime_data, _app_controller)
+    _user_dict_edit_view_model = UserDictEditViewModel(_config_data, _runtime_data, _app_controller)
     _pipeline_setting_view_model = PipelineSettingViewModel(_config_data, _runtime_data, _app_controller)
     _ai_setting_view_model = AiSettingViewModel(_config_data, _runtime_data, _app_controller)
     _about_view_model = AboutViewModel(_config_data, _runtime_data, _app_controller)
@@ -63,6 +64,7 @@ if __name__ == "__main__":
     engine.rootContext().setContextProperty('pnDictEditViewModel', _pn_dict_edit_view_model)
 
     engine.rootContext().setContextProperty('geminiApiResetViewModel', _gemini_api_reset_view_model)
+    engine.rootContext().setContextProperty('userDictEditViewModel', _user_dict_edit_view_model)
     engine.rootContext().setContextProperty('pipelineSettingViewModel', _pipeline_setting_view_model)
     engine.rootContext().setContextProperty('aiSettingViewModel', _ai_setting_view_model)
     engine.rootContext().setContextProperty('aboutViewModel', _about_view_model)

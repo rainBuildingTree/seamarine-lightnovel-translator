@@ -9,6 +9,7 @@ class RuntimeData:
         self.file: str = ""
         self.filename: str = ""
         self.pn_dict_file: str = ""
+        self.user_dict_file: str = os.path.join(get_dict_directory() + "seamarine_user_dict.csv")
         self.save_directory: str = ""
         self.is_translating: bool = False
         self.current_phase: str = "None"

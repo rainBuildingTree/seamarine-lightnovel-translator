@@ -27,7 +27,6 @@ class BaseDictEditViewModel(QObject, ABC, metaclass=QABCMeta):
         super().__init__(parent)
         self._logger = setup_logger()
         try:
-            # PnDictModel 대신 좀 더 일반적인 이름으로 변경하거나 그대로 사용해도 무방
             self._model: PnDictModel = PnDictModel()
             self._config_data: ConfigData = config_data
             self._runtime_data: RuntimeData = runtime_data
@@ -57,10 +56,9 @@ class BaseDictEditViewModel(QObject, ABC, metaclass=QABCMeta):
             self._logger.warning(f"File not found: {file_path}. Creating a new file.")
             try:
                 os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                # save_dict 함수 대신 간단한 파일 생성 로직으로 대체
                 with open(file_path, 'w', newline='', encoding='utf-8') as f:
-                    pass # 빈 파일 생성
-                self._model = PnDictModel() # 모델 초기화
+                    pass
+                self._model = PnDictModel()
             except Exception as e:
                 self._logger.error(f"Failed to create directory or file for {file_path}: {e}")
         except Exception as e:
@@ -73,10 +71,7 @@ class BaseDictEditViewModel(QObject, ABC, metaclass=QABCMeta):
         try:
             data_to_save = self._model.get_all_data()
             
-            # 원본 코드의 의도를 살려 파일 이름만 전달
             save_dict(os.path.basename(file_path), data_to_save)
-            # 혹은 전체 경로를 사용하도록 수정할 수도 있습니다.
-            # save_dict(file_path, data_to_save)
             
             self._logger.info(f"Data successfully saved to {file_path}, {str(data_to_save)}")
             self.saveSucceed.emit()
@@ -85,7 +80,6 @@ class BaseDictEditViewModel(QObject, ABC, metaclass=QABCMeta):
             self._logger.error(f"Failed to save data to {file_path}: {e}")
             self.saveFailed.emit()
 
-    # --- 아래는 변경 없이 그대로 베이스 클래스로 이동 ---
 
     @Slot()
     def lazy_init(self):
@@ -124,7 +118,7 @@ class BaseDictEditViewModel(QObject, ABC, metaclass=QABCMeta):
     def add_row(self):
         try:
             self._model.add_term("", "")
-            self.dataChanged.emit() # 데이터 추가 후 dataChanged 시그널을 보내는 것이 좋습니다.
+            self.dataChanged.emit()
             self._logger.info(f"{self.__class__.__name__}.add_row")
         except Exception as e:
             self._logger.error(f"{self.__class__.__name__}.add_row\n->{e}")
@@ -132,7 +126,7 @@ class BaseDictEditViewModel(QObject, ABC, metaclass=QABCMeta):
     @Slot()
     def close(self):
         try:
-            self.load_csv() # 저장하지 않은 변경사항을 되돌리는 역할
+            self.load_csv()
             self._app_controller.popCurrentPage.emit()
             self._logger.info(f"{self.__class__.__name__}.close")
         except Exception as e:

@@ -8,6 +8,7 @@ QtObject {
     readonly property string translate: root.imageResources + "Translate.png"
     readonly property string setting: root.imageResources + "Setting.png"
     readonly property string gemini: root.imageResources + "Gemini.png"
+    readonly property string userdict: root.imageResources + "UserDict.png"
     readonly property string advanced: root.imageResources + "Advanced.png"
     readonly property string about: root.imageResources + "About.png"
     readonly property string program: root.imageResources + "ProgramIcon.png"

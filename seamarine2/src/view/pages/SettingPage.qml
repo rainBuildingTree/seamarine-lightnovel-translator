@@ -61,11 +61,26 @@ Page {
             pageFont: root.pageFont
 
             Layout.preferredWidth: 340
-            Layout.preferredHeight: 128
+            Layout.preferredHeight: 104
             Layout.alignment: Qt.AlignHCenter
             Layout.margins: 4
 
             onClicked: settingViewModel.open_api_reset()
+        }
+        MyComponents.SettingComponent {
+            borderColor: colorLoader.shimarin_dark
+            innerBorderColor: colorLoader.shimarin
+            textColor: colorLoader.shimarin_dark
+            imageSource: imageLoader.userdict
+            text: qsTr("사용자 사전 편집")
+            pageFont: root.pageFont
+
+            Layout.preferredWidth: 340
+            Layout.preferredHeight: 104
+            Layout.alignment: Qt.AlignHCenter
+            Layout.margins: 4
+
+            onClicked: settingViewModel.open_user_dict_edit()
         }
         MyComponents.SettingComponent {
             borderColor: colorLoader.shimarin_dark
@@ -76,7 +91,7 @@ Page {
             pageFont: root.pageFont
 
             Layout.preferredWidth: 340
-            Layout.preferredHeight: 128
+            Layout.preferredHeight: 104
             Layout.alignment: Qt.AlignHCenter
             Layout.margins: 4
 
@@ -91,7 +106,7 @@ Page {
             pageFont: root.pageFont
 
             Layout.preferredWidth: 340
-            Layout.preferredHeight: 128
+            Layout.preferredHeight: 104
             Layout.alignment: Qt.AlignHCenter
             Layout.margins: 4
 
@@ -106,7 +121,7 @@ Page {
             pageFont: root.pageFont
 
             Layout.preferredWidth: 340
-            Layout.preferredHeight: 128
+            Layout.preferredHeight: 104
             Layout.alignment: Qt.AlignHCenter
             Layout.margins: 4
 

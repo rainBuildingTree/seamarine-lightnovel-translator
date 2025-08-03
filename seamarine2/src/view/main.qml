@@ -60,6 +60,9 @@ ApplicationWindow {
         function onNavigateToApiResetPage() {
             rootStack.push('pages/GeminiApiResetPage.qml', { pageFont: fontLoader.font })
         }
+        function onNavigateToUserDictEditPage() {
+            rootStack.push('pages/UserDictEditPage.qml', { pageFont: fontLoader.font })
+        }
         function onNavigateToPipelineSettingPage() {
             rootStack.push('pages/PipelineSettingPage.qml', { pageFont: fontLoader.font })
         }

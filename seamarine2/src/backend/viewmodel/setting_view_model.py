@@ -22,6 +22,13 @@ class SettingViewModel(QObject):
         except Exception as e:
             self.logger.error(str(self) + str(e))
     @Slot()
+    def open_user_dict_edit(self):
+        try:
+            self.app_controller.navigateToUserDictEditPage.emit()
+            self.logger.info(str(self) + ".open_user_dict_edit")
+        except Exception as e:
+            self.logger.exception(str(self) + str(e))
+    @Slot()
     def open_pipeline_setting(self):
         try:
             self.app_controller.navigateToPipelineSettingPage.emit()

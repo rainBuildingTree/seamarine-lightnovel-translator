@@ -20,6 +20,7 @@ class AppController(QObject):
     navigateToPnDictEditPage = Signal()
     # Setting #
     navigateToApiResetPage = Signal()
+    navigateToUserDictEditPage = Signal()
     navigateToPipelineSettingPage = Signal()
     navigateToAiSettingPage = Signal()
     navigateToAboutPage = Signal()

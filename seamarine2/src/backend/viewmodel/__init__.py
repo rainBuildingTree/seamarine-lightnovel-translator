@@ -13,5 +13,5 @@ from .review_setting_view_model import ReviewSettingViewModel
 from .image_translate_setting_view_model import ImageTranslateSettingViewModel
 from .log_reader_view_model import LogReader
 from .home_view_model import HomeViewModel
-from .pn_dict_edit_view_model import PnDictEditViewModel
+from .pn_dict_edit_view_model import PnDictEditViewModel, UserDictEditViewModel
 from .advanced_mode_view_model import AdvancedModeViewModel
