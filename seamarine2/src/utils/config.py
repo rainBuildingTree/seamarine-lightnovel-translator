@@ -2,7 +2,7 @@ import os
 import json
 from PySide6.QtCore import QStandardPaths
 
-CURRENT_VERSION = "2.0.0"
+CURRENT_VERSION = "2.0.1"
 
 _default_config_data: dict = {
     "current_version": CURRENT_VERSION,
