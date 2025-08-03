@@ -212,6 +212,12 @@ class HomeViewModel(QObject):
                     for row in reader:
                         if len(row) >= 2:
                             proper_noun[row[0]] = row[1]
+            if os.path.exists(self._runtime_data.user_dict_file):
+                with open(self._runtime_data.user_dict_file, newline='', encoding='utf-8') as f:
+                    reader = csv.reader(f)
+                    for row in reader:
+                        if len(row) >= 2:
+                            proper_noun[row[0]] = row[1]
             self.main_translator = MainTranslator(
                 self._app_controller.translate_core,
                 self._config_data.main_translate_model_config,
@@ -246,6 +252,12 @@ class HomeViewModel(QObject):
             proper_noun = {}
             if os.path.exists(self._runtime_data.pn_dict_file):
                 with open(self._runtime_data.pn_dict_file, newline='', encoding='utf-8') as f:
+                    reader = csv.reader(f)
+                    for row in reader:
+                        if len(row) >= 2:
+                            proper_noun[row[0]] = row[1]
+            if os.path.exists(self._runtime_data.user_dict_file):
+                with open(self._runtime_data.user_dict_file, newline='', encoding='utf-8') as f:
                     reader = csv.reader(f)
                     for row in reader:
                         if len(row) >= 2:
@@ -288,6 +300,12 @@ class HomeViewModel(QObject):
                     for row in reader:
                         if len(row) >= 2:
                             proper_noun[row[0]] = row[1]
+            if os.path.exists(self._runtime_data.user_dict_file):
+                with open(self._runtime_data.user_dict_file, newline='', encoding='utf-8') as f:
+                    reader = csv.reader(f)
+                    for row in reader:
+                        if len(row) >= 2:
+                            proper_noun[row[0]] = row[1]
             self.reviewer = Reviewer(
                 self._app_controller.translate_core,
                 self._config_data.review_model_config,
@@ -326,6 +344,12 @@ class HomeViewModel(QObject):
                     for row in reader:
                         if len(row) >= 2:
                             proper_noun[row[0]] = row[1]
+            if os.path.exists(self._runtime_data.user_dict_file):
+                with open(self._runtime_data.user_dict_file, newline='', encoding='utf-8') as f:
+                    reader = csv.reader(f)
+                    for row in reader:
+                        if len(row) >= 2:
+                            proper_noun[row[0]] = row[1]
             self.languageMerger = LanguageMerger(
                 self._app_controller.translate_core,
                 self._config_data.review_model_config,
@@ -360,6 +384,12 @@ class HomeViewModel(QObject):
             proper_noun = {}
             if os.path.exists(self._runtime_data.pn_dict_file):
                 with open(self._runtime_data.pn_dict_file, newline='', encoding='utf-8') as f:
+                    reader = csv.reader(f)
+                    for row in reader:
+                        if len(row) >= 2:
+                            proper_noun[row[0]] = row[1]
+            if os.path.exists(self._runtime_data.user_dict_file):
+                with open(self._runtime_data.user_dict_file, newline='', encoding='utf-8') as f:
                     reader = csv.reader(f)
                     for row in reader:
                         if len(row) >= 2:

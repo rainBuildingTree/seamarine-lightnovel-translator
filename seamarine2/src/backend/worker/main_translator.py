@@ -103,11 +103,7 @@ To prevent errors, all string values inside the JSON MUST be correctly escaped.
     - **GOOD:** "Line 1\\nLine 2"
 
 Before you finalize your response, double-check that the entire output is a single block of valid JSON code and that all string content adheres to these escaping rules.
-""".strip() + \
-"""
-
-**Proper Noun Dictionary For Reference In Translation**
-""" + str(self._proper_noun) + '\n\n' + ai_model_data.system_prompt
+""".strip() + '\n\n' + ai_model_data.system_prompt
         self._core.update_model_data(ai_model_data)
         self._core.language_from = book.get_language()
         self._logger.info(f"[MainTranslator._execute]: TranslateCore Setup Completed")
