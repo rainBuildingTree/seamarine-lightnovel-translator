@@ -178,10 +178,10 @@
 > 실제 동작 코드는 **`seamarine2/`** 에 있습니다. 레거시/실험 디렉토리는 현재 사용하지 않습니다.
 
 seamarine2/
-├─ (GUI) QML 뷰 파일들
-├─ (Python) 번역 파이프라인/작업 모듈
-├─ (Python) 설정/유틸리티/리소스 로더
-└─ (빌드 스펙/리소스) 실행파일 패키징 관련
+├─ (GUI) QML 뷰 파일들    
+├─ (Python) 번역 파이프라인/작업 모듈    
+├─ (Python) 설정/유틸리티/리소스 로더    
+└─ (빌드 스펙/리소스) 실행파일 패키징 관련    
 
 - GUI(QML) ←→ ViewModel(Python) ←→ Worker(Python) 구조  
 - 버튼 클릭 등 UI 이벤트가 ViewModel을 타고 Worker로 전달되어 **비동기 작업** 수행  
