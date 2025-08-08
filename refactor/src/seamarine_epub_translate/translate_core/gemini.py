@@ -2,7 +2,6 @@ import time, warnings
 from google import genai
 from google.genai import types, errors
 
-from .api_info import ApiInfo
 from .base import TranslateCore
 
 def _safe_clamp(value: int | float | None, lo: int | float, hi: int | float) -> int | float | None:
@@ -39,8 +38,8 @@ class GeminiTranslateCore(TranslateCore):
     ]
 
     def __init__(self,
-                 api_info: ApiInfo,
-                 model: str | None                  = None,
+                 api_key: str | None,
+                 model: str,
                  system_instruction: str | None     = None,
                  max_output_token: int | None       = None,
                  temperature: float | None          = None,
@@ -48,7 +47,7 @@ class GeminiTranslateCore(TranslateCore):
                  presence_penalty: float | None     = None,
                  frequency_penalty: float | None    = None,
                  thinking_budget: int | None        = None):
-        self._client: genai.Client = self._create_client(api_info)
+        self._client: genai.Client = genai.Client(api_key=api_key) if not self._client else self._client
 
         model_info = self._client.models.get(model=model)
         if not ('generateContent' in model_info.supported_actions and 'countTokens' in model_info.supported_actions):
@@ -104,9 +103,6 @@ class GeminiTranslateCore(TranslateCore):
             return ""
         
         return response.text.strip()
-    
-    def _create_client(self, api_info: ApiInfo) -> genai.Client:
-        return genai.Client(api_key=api_info.key)
     
     def _resolve_thinking_budget(self, model: str, budget: int | None) -> int | None:
         if budget is None:  return None
