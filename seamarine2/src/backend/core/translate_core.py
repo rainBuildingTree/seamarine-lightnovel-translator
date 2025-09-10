@@ -8,27 +8,84 @@ import ast
 import time
 import re
 import json
+from typing import Optional, Any
+
+# Optional imports for OpenAI-compatible providers and image handling
+try:
+    from openai import OpenAI  # Official OpenAI SDK (works with OpenAI-compatible base_url)
+except Exception:  # pragma: no cover
+    OpenAI = None  # type: ignore
+
+try:
+    from PIL import Image as PILImage
+except Exception:  # pragma: no cover
+    PILImage = None  # type: ignore
+
+import base64
 
 class TranslateCore:
-    def __init__(self, language_from=""):
+    def __init__(self, language_from: str = "", api_provider: str = "gemini", openai_base_url: Optional[str] = None,
+                 gemini_use_vertex_ai: bool = False, gcp_project: Optional[str] = None, gcp_location: Optional[str] = None):
         self._logger = logging.getLogger("seamarine_translate")
         try:
             self.language_from = language_from
+            # Provider: 'gemini' (default) or 'openai' (OpenAI-compatible)
+            self._provider: str = (api_provider or "gemini").lower()
+            self._openai_base_url: Optional[str] = openai_base_url
+            # Gemini backend options
+            self._gemini_use_vertex_ai: bool = bool(gemini_use_vertex_ai)
+            self._gcp_project: Optional[str] = gcp_project
+            self._gcp_location: Optional[str] = gcp_location
             self._key: str = ""
-            self._client = None if self._key == "" else genai.Client()
+            # Delay client initialization until key is registered
+            self._client: Any = None
             self._model_data: AiModelConfig
-            self._logger.info(str(self) + ".__init__")
+            backend = "vertex" if self._gemini_use_vertex_ai and self._provider == "gemini" else "developer"
+            self._logger.info(str(self) + f".__init__(provider={self._provider}, gemini_backend={backend})")
         except Exception as e:
             self._logger.error(str(self) + str(e))
         
     def register_key(self, key: str) -> bool: 
         try:
-            os.environ['GOOGLE_API_KEY'] = key
-            self._client = genai.Client()
-            self._logger.info(str(self) + f".register_key({key})")
+            self._key = key
+            if self._provider == "openai":
+                if OpenAI is None:
+                    raise ImportError("openai package not available. Please install 'openai'.")
+                os.environ['OPENAI_API_KEY'] = key
+                # Allow OpenAI-compatible by customizing base_url
+                if self._openai_base_url:
+                    self._client = OpenAI(api_key=key, base_url=self._openai_base_url)
+                else:
+                    self._client = OpenAI(api_key=key)
+            else:
+                # Gemini (Developer API or Vertex AI)
+                if self._gemini_use_vertex_ai:
+                    # Route SDK to Vertex AI per official docs
+                    os.environ['GOOGLE_GENAI_USE_VERTEXAI'] = 'true'
+                    if self._gcp_project:
+                        os.environ['GOOGLE_CLOUD_PROJECT'] = self._gcp_project
+                    if self._gcp_location:
+                        os.environ['GOOGLE_CLOUD_LOCATION'] = self._gcp_location
+                    # If a service account JSON path is passed as key, use it
+                    try:
+                        if key and os.path.isfile(key) and key.endswith('.json'):
+                            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = key
+                            self._logger.info(str(self) + ".register_key -> Using service account credentials for Vertex AI")
+                    except Exception:
+                        pass
+                    # Ensure API key variables don't interfere
+                    os.environ.pop('GOOGLE_API_KEY', None)
+                    os.environ.pop('GEMINI_API_KEY', None)
+                    self._client = genai.Client()
+                else:
+                    # Gemini Developer API via API Key
+                    os.environ['GOOGLE_API_KEY'] = key
+                    os.environ['GEMINI_API_KEY'] = key
+                    self._client = genai.Client()
+            self._logger.info(str(self) + f".register_key(<hidden>) provider={self._provider}")
             return True
         except Exception as e:
-            self._logger.error(str(self) + f".register_key({key})\n-> " + str(e))
+            self._logger.error(str(self) + f".register_key(<hidden>)\n-> " + str(e))
             return False
         
     def update_model_data(self, data: AiModelConfig) -> bool:
@@ -42,66 +99,76 @@ class TranslateCore:
 
     def get_model_list(self) -> list[str]:
         try:
-            raw_model_list = self._client.models.list()
-            model_list = [
-                (model.name).removeprefix("models/")
-                for model in raw_model_list
-                for action in model.supported_actions
-                if action == 'generateContent'
-            ]
-            self._logger.info(str(self) + ".get_model_list -> " + str(model_list))
-            return model_list
+            if self._provider == "openai":
+                # OpenAI-compatible /v1/models
+                models = self._client.models.list()
+                model_list = [m.id for m in getattr(models, 'data', [])]
+                self._logger.info(str(self) + ".get_model_list(openai) -> " + str(model_list))
+                return model_list
+            else:
+                raw_model_list = self._client.models.list()
+                model_list = [
+                    (model.name).removeprefix("models/")
+                    for model in raw_model_list
+                    for action in model.supported_actions
+                    if action == 'generateContent'
+                ]
+                self._logger.info(str(self) + ".get_model_list(gemini) -> " + str(model_list))
+                return model_list
         except Exception as e:
             self._logger.error(str(self) + str(e))
             return []
         
     def generate_content(self, contents: str | bytes, divide_n_conquer = True, resp_in_json = False):
         try:
-            gen_config = types.GenerateContentConfig(
-                max_output_tokens= 65536 if '2.5' in self._model_data.name else 8192,
-                system_instruction= self._model_data.system_prompt,
-                temperature= self._model_data.temperature,
-                top_p= self._model_data.top_p,
-                frequency_penalty= self._model_data.frequency_penalty,
-                safety_settings = [
-                    types.SafetySetting(
-                        category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-                        threshold=types.HarmBlockThreshold.OFF
-                    ),
-                    types.SafetySetting(
-                        category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-                        threshold=types.HarmBlockThreshold.OFF
-                    ),
-                    types.SafetySetting(
-                        category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-                        threshold=types.HarmBlockThreshold.OFF
-                    ),
-                    types.SafetySetting(
-                        category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-                        threshold=types.HarmBlockThreshold.OFF
-                    ),
-                    types.SafetySetting(
-                        category=types.HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY,
-                        threshold=types.HarmBlockThreshold.OFF
-                    )
-                ],
-            )
-            if self._model_data.use_thinking_budget:
-                gen_config.thinking_config = types.ThinkingConfig(thinking_budget=self._model_data.thinking_budget)
-            
-            resp = self._client.models.generate_content(
-                model=self._model_data.name,
-                contents=contents,
-                config=gen_config
-            )
+            if self._provider == "openai":
+                return self._openai_generate_content(contents, divide_n_conquer, resp_in_json)
+            else:
+                gen_config = types.GenerateContentConfig(
+                    max_output_tokens= 65536 if '2.5' in self._model_data.name else 8192,
+                    system_instruction= self._model_data.system_prompt,
+                    temperature= self._model_data.temperature,
+                    top_p= self._model_data.top_p,
+                    frequency_penalty= self._model_data.frequency_penalty,
+                    safety_settings = [
+                        types.SafetySetting(
+                            category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                            threshold=types.HarmBlockThreshold.OFF
+                        ),
+                        types.SafetySetting(
+                            category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                            threshold=types.HarmBlockThreshold.OFF
+                        ),
+                        types.SafetySetting(
+                            category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                            threshold=types.HarmBlockThreshold.OFF
+                        ),
+                        types.SafetySetting(
+                            category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                            threshold=types.HarmBlockThreshold.OFF
+                        ),
+                        types.SafetySetting(
+                            category=types.HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY,
+                            threshold=types.HarmBlockThreshold.OFF
+                        )
+                    ],
+                )
+                if self._model_data.use_thinking_budget:
+                    gen_config.thinking_config = types.ThinkingConfig(thinking_budget=self._model_data.thinking_budget)
+                
+                resp = self._client.models.generate_content(
+                    model=self._model_data.name,
+                    contents=contents,
+                    config=gen_config
+                )
 
-            if resp.prompt_feedback and resp.prompt_feedback.block_reason:
-                self._logger.warning(f"Response blocked with the reason {resp.prompt_feedback.block_reason}")
-                if divide_n_conquer:
-                    return self._divide_and_conquer_json(contents) if resp_in_json else self._divide_and_conquer(contents)
-                else:
-                    return ""
-            return self._clean_gemini_response(resp.text)
+                if resp.prompt_feedback and resp.prompt_feedback.block_reason:
+                    self._logger.warning(f"Response blocked with the reason {resp.prompt_feedback.block_reason}")
+                    if divide_n_conquer:
+                        return self._divide_and_conquer_json(contents) if resp_in_json else self._divide_and_conquer(contents)
+                    else:
+                        return ""
+                return self._clean_gemini_response(resp.text)
         except Exception as e:
             self._logger.error(f"{str(self)}.generate_content -> {str(e)}")
             if "429" in str(e) or "Resource exhausted" in str(e):
@@ -113,7 +180,13 @@ class TranslateCore:
                 return ""
         
     def count_token(self, text):
-        return self._client.models.count_tokens(text)
+        try:
+            if self._provider == "openai":
+                # Token counting not directly supported generically across OpenAI-compatible APIs
+                return None
+            return self._client.models.count_tokens(text)
+        except Exception:
+            return None
     
     def _get_retry_delay_from_exception(self, error_str: str, extra_seconds: int = 5) -> int:
         start_idx = error_str.find('{')
@@ -177,11 +250,6 @@ class TranslateCore:
         subcontents_1 = contents[0:len(contents)//2]
         subcontents_2 = contents[len(contents)//2:len(contents)]
 
-
-
-        
-
-
     def _clean_gemini_response(self, response_text: str) -> str:
         """
         Cleans the Gemini API response by stripping markdown formatting.
@@ -201,6 +269,72 @@ class TranslateCore:
         self.escape_special_chars_in_json_string_safe(text)
             
         return text
+
+    # ---------- OpenAI-compatible generation ----------
+    def _openai_generate_content(self, contents: str | bytes, divide_n_conquer: bool, resp_in_json: bool) -> str:
+        if self._client is None:
+            raise RuntimeError("OpenAI client not initialized. Call register_key() first.")
+
+        # Build messages for Chat Completions API
+        system_prompt = getattr(self._model_data, 'system_prompt', '') or ''
+
+        # Determine if input is image-like
+        is_image = False
+        image_bytes: Optional[bytes] = None
+        mime_type = 'image/png'
+
+        try:
+            if PILImage and isinstance(contents, PILImage.Image):
+                is_image = True
+                buf = self._pil_to_png_bytes(contents)
+                image_bytes = buf
+                mime_type = 'image/png'
+            elif isinstance(contents, (bytes, bytearray)):
+                # Assume bytes represent an image
+                is_image = True
+                image_bytes = bytes(contents)
+                mime_type = 'image/png'
+        except Exception:
+            is_image = False
+
+        messages: list[dict] = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+
+        if is_image and image_bytes is not None:
+            b64 = base64.b64encode(image_bytes).decode("utf-8")
+            user_content = [
+                {"type": "text", "text": f"Language from: {self.language_from or 'unknown'}."},
+                {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{b64}", "detail": "auto"}},
+            ]
+            messages.append({"role": "user", "content": user_content})
+        else:
+            messages.append({"role": "user", "content": str(contents)})
+
+        params = {
+            "model": self._model_data.name,
+            "messages": messages,
+            "temperature": getattr(self._model_data, 'temperature', None),
+            "top_p": getattr(self._model_data, 'top_p', None),
+            "frequency_penalty": getattr(self._model_data, 'frequency_penalty', None),
+        }
+        # Remove None values to avoid provider compatibility issues
+        params = {k: v for k, v in params.items() if v is not None}
+
+        completion = self._client.chat.completions.create(**params)
+        choice = completion.choices[0]
+        text = (choice.message.content or "")
+        finish_reason = getattr(choice, 'finish_reason', None)
+        if finish_reason == 'content_filter' and divide_n_conquer and isinstance(contents, str):
+            self._logger.warning("OpenAI response blocked by content_filter; applying divide and conquer")
+            return self._divide_and_conquer_json(contents) if resp_in_json else self._divide_and_conquer(contents)
+        return self._clean_gemini_response(text)
+
+    def _pil_to_png_bytes(self, img) -> bytes:
+        from io import BytesIO
+        buf = BytesIO()
+        img.save(buf, format='PNG')
+        return buf.getvalue()
     
     def escape_special_chars_in_json_string_safe(self, s: str) -> str:
         """
