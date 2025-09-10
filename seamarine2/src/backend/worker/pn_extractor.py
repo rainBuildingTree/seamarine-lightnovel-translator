@@ -13,8 +13,6 @@ import ast
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 import csv
-from sudachipy import Dictionary, Morpheme
-from sudachipy.tokenizer import Tokenizer as SudachiTokenizer
 import copy
 
 class PnExtractor(QThread):
